@@ -1,0 +1,1716 @@
+{
+  "01_NASDAQ_TotalView-ITCH_Order_Book\\01_parse_itch_order_flow_messages.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Working with Order Book Data: NASDAQ ITCH"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "The primary source of market data is the order book, which is continuously updated in real-time throughout the day to reflect all trading activity. Exchanges typically offer this data as a real-time service and may provide some historical data for free.\n",
+        "\n",
+        "The trading activity is reflected in numerous messages about trade orders sent by market participants. These messages typically conform to the electronic Financial Information eXchange (FIX) communications protocol for real-time exchange of securities transactions and market data or a native exchange protocol. "
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Background"
+      ]
+    },
+    {
+      "index": 3,
+      "source": [
+        "### The FIX Protocol"
+      ]
+    },
+    {
+      "index": 4,
+      "source": [
+        "Just like SWIFT is the message protocol for back-office (example, for trade-settlement) messaging, the [FIX protocol](https://www.fixtrading.org/standards/) is the de facto messaging standard for communication before and during, trade execution between exchanges, banks, brokers, clearing firms, and other market participants. Fidelity Investments and Salomon Brothers introduced FIX in 1992 to facilitate electronic communication between broker-dealers and institutional clients who by then exchanged information over the phone.\n",
+        "\n",
+        "It became popular in global equity markets before expanding into foreign exchange, fixed income and derivatives markets, and further into post-trade to support straight-through processing. Exchanges provide access to FIX messages as a real-time data feed that is parsed by algorithmic traders to track market activity and, for example, identify the footprint of market participants and anticipate their next move. "
+      ]
+    },
+    {
+      "index": 5,
+      "source": [
+        "### Nasdaq TotalView-ITCH Order Book data"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "While FIX has a dominant large market share, exchanges also offer native protocols. The Nasdaq offers a [TotalView ITCH direct data-feed protocol](http://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf) that allows subscribers to track \n",
+        "individual orders for equity instruments from placement to execution or cancellation.\n",
+        "\n",
+        "As a result, it allows for the reconstruction of the order book that keeps track of the list of active-limit buy and sell orders for a specific security or financial instrument. The order book reveals the market depth throughout the day by listing the number of shares being bid or offered at each price point. It may also identify the market participant responsible for specific buy and sell orders unless it is placed anonymously. Market depth is a key indicator of liquidity and the potential price impact of sizable market orders. "
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "The ITCH v5.0 specification declares over 20 message types related to system events, stock characteristics, the placement and modification of limit orders, and trade execution. It also contains information about the net order imbalance before the open and closing cross."
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "## Imports"
+      ]
+    },
+    {
+      "index": 13,
+      "source": [
+        "## Get NASDAQ ITCH Data from FTP Server"
+      ]
+    },
+    {
+      "index": 14,
+      "source": [
+        "The Nasdaq offers [samples](https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/) of daily binary files for several months. \n",
+        "\n",
+        "We are now going to illustrates how to parse a sample file of ITCH messages and reconstruct both the executed trades and the order book for any given tick."
+      ]
+    },
+    {
+      "index": 15,
+      "source": [
+        "The data is fairly large and running the entire example can take a lot of time and require substantial memory (16GB+). Also, the sample file used in this example may no longer be available because NASDAQ occasionaly updates the sample files."
+      ]
+    },
+    {
+      "index": 16,
+      "source": [
+        "The following table shows the frequency of the most common message types for the sample file date March 29, 2018:"
+      ]
+    },
+    {
+      "index": 17,
+      "source": [
+        "| Name                    | Offset  | Length  | Value      | Notes                                                                                |\n",
+        "|-------------------------|---------|---------|------------|--------------------------------------------------------------------------------------|\n",
+        "| Message Type            | 0       | 1       | S          | System Event Message                                                                 |\n",
+        "| Stock Locate            | 1       | 2       | Integer    | Always 0                                                                             |\n",
+        "| Tracking Number         | 3       | 2       | Integer    | Nasdaq internal tracking number                                                      |\n",
+        "| Timestamp               | 5       | 6       | Integer    | Nanoseconds since midnight                                                           |\n",
+        "| Order Reference Number  | 11      | 8       | Integer    | The unique reference number assigned to the new order at the time of receipt.        |\n",
+        "| Buy/Sell Indicator      | 19      | 1       | Alpha      | The type of order being added. B = Buy Order. S = Sell Order.                        |\n",
+        "| Shares                  | 20      | 4       | Integer    | The total number of shares associated with the order being added to the book.        |\n",
+        "| Stock                   | 24      | 8       | Alpha      | Stock symbol, right padded with spaces                                               |\n",
+        "| Price                   | 32      | 4       | Price (4)  | The display price of the new order. Refer to Data Types for field processing notes.  |\n",
+        "| Attribution             | 36      | 4       | Alpha      | Nasdaq Market participant identifier associated with the entered order               |"
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "### Set Data paths"
+      ]
+    },
+    {
+      "index": 19,
+      "source": [
+        "We will store the download in a `data` subdirectory and convert the result to `hdf` format (discussed in the last section of chapter 2)."
+      ]
+    },
+    {
+      "index": 21,
+      "source": [
+        "You can find several sample files on the [NASDAQ server](https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/).\n",
+        "\n",
+        "The HTTPS address, filename and corresponding date used in this example:"
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "#### URL updates\n",
+        "\n",
+        "NASDAQ updates the files occasionally so that the SOURCE_FILE changes. If the above gives an error, navigate to the HTTPS_URL using your browser, and check for new files. As of September 2021, the listed files include:\n",
+        "\n",
+        "- 01302020.NASDAQ_ITCH50.gz\n",
+        "- 12302019.NASDAQ_ITCH50.gz\n",
+        "- 10302019.NASDAQ_ITCH50.gz\n",
+        "- 08302019.NASDAQ_ITCH50.gz\n",
+        "- 07302019.NASDAQ_ITCH50.gz\n",
+        "- 03272019.NASDAQ_ITCH50.gz\n",
+        "- 01302019.NASDAQ_ITCH50.gz\n",
+        "- 12282018.NASDAQ_ITCH50.gz\n"
+      ]
+    },
+    {
+      "index": 24,
+      "source": [
+        "### Download & unzip"
+      ]
+    },
+    {
+      "index": 26,
+      "source": [
+        "This will download 5.1GB data that unzips to 12.9GB (this may vary depending on the file, see 'url updates' below)."
+      ]
+    },
+    {
+      "index": 28,
+      "source": [
+        "## ITCH Format Settings"
+      ]
+    },
+    {
+      "index": 29,
+      "source": [
+        "### The `struct` module for binary data"
+      ]
+    },
+    {
+      "index": 30,
+      "source": [
+        "The ITCH tick data comes in binary format. Python provides the `struct` module (see [docs](https://docs.python.org/3/library/struct.html)) to parse binary data using format strings that identify the message elements by indicating length and type of the various components of the byte string as laid out in the specification."
+      ]
+    },
+    {
+      "index": 31,
+      "source": [
+        "From the docs:\n",
+        "\n",
+        "> This module performs conversions between Python values and C structs represented as Python bytes objects. This can be used in handling binary data stored in files or from network connections, among other sources. It uses Format Strings as compact descriptions of the layout of the C structs and the intended conversion to/from Python values."
+      ]
+    },
+    {
+      "index": 32,
+      "source": [
+        "Let's walk through the critical steps to parse the trading messages and reconstruct the order book:"
+      ]
+    },
+    {
+      "index": 33,
+      "source": [
+        "### Defining format strings"
+      ]
+    },
+    {
+      "index": 34,
+      "source": [
+        "The parser uses format strings according to the following formats dictionaries:"
+      ]
+    },
+    {
+      "index": 38,
+      "source": [
+        "### Create message specs for binary data parser"
+      ]
+    },
+    {
+      "index": 39,
+      "source": [
+        "The ITCH parser relies on message specifications that we create in the following steps."
+      ]
+    },
+    {
+      "index": 40,
+      "source": [
+        "#### Load Message Types"
+      ]
+    },
+    {
+      "index": 41,
+      "source": [
+        "The file `message_types.xlxs` contains the message type specs as laid out in the [documentation](https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf)"
+      ]
+    },
+    {
+      "index": 44,
+      "source": [
+        "#### Basic Cleaning"
+      ]
+    },
+    {
+      "index": 45,
+      "source": [
+        "The function `clean_message_types()` just runs a few basic string cleaning steps."
+      ]
+    },
+    {
+      "index": 48,
+      "source": [
+        "#### Get Message Labels"
+      ]
+    },
+    {
+      "index": 49,
+      "source": [
+        "We extract message type codes and names so we can later make the results more readable."
+      ]
+    },
+    {
+      "index": 51,
+      "source": [
+        "### Finalize specification details"
+      ]
+    },
+    {
+      "index": 52,
+      "source": [
+        "Each message consists of several fields that are defined by offset, length and type of value. The `struct` module will use this format information to parse the binary source data."
+      ]
+    },
+    {
+      "index": 55,
+      "source": [
+        "Optionally, persist/reload from file:"
+      ]
+    },
+    {
+      "index": 58,
+      "source": [
+        "The parser translates the message specs into format strings and `namedtuples` that capture the message content. First, we create `(type, length)` formatting tuples from ITCH specs:"
+      ]
+    },
+    {
+      "index": 60,
+      "source": [
+        "Then, we extract formatting details for alphanumerical fields"
+      ]
+    },
+    {
+      "index": 62,
+      "source": [
+        "We generate message classes as named tuples and format strings"
+      ]
+    },
+    {
+      "index": 66,
+      "source": [
+        "Fields of `alpha` type (alphanumeric) require post-processing as defined in the `format_alpha` function:"
+      ]
+    },
+    {
+      "index": 68,
+      "source": [
+        "## Process Binary Message Data"
+      ]
+    },
+    {
+      "index": 69,
+      "source": [
+        "The binary file for a single day contains over 350,000,000 messages worth over 12 GB."
+      ]
+    },
+    {
+      "index": 72,
+      "source": [
+        "The script appends the parsed result iteratively to a file in the fast HDF5 format using the `store_messages()` function we just defined to avoid memory constraints (see last section in chapter 2 for more on this format)."
+      ]
+    },
+    {
+      "index": 73,
+      "source": [
+        "The following code processes the binary file and produces the parsed orders stored by message type:"
+      ]
+    },
+    {
+      "index": 75,
+      "source": [
+        "## Summarize Trading Day"
+      ]
+    },
+    {
+      "index": 76,
+      "source": [
+        "### Trading Message Frequency"
+      ]
+    },
+    {
+      "index": 79,
+      "source": [
+        "### Top Equities by Traded Value"
+      ]
+    }
+  ],
+  "01_NASDAQ_TotalView-ITCH_Order_Book\\02_rebuild_nasdaq_order_book.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Working with Order Book Data: NASDAQ ITCH"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "The primary source of market data is the order book, which is continuously updated in real-time throughout the day to reflect all trading activity. Exchanges typically offer this data as a real-time service and may provide some historical data for free.\n",
+        "\n",
+        "The trading activity is reflected in numerous messages about trade orders sent by market participants. These messages typically conform to the electronic Financial Information eXchange (FIX) communications protocol for real-time exchange of securities transactions and market data or a native exchange protocol. "
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Imports"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "### Set Data paths"
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "We will store the download in a `data` subdirectory and convert the result to `hdf` format (discussed in the last section of chapter 2)."
+      ]
+    },
+    {
+      "index": 9,
+      "source": [
+        "## Build Order Book"
+      ]
+    },
+    {
+      "index": 11,
+      "source": [
+        "The parsed messages allow us to rebuild the order flow for the given day. The 'R' message type contains a listing of all stocks traded during a given day, including information about initial public offerings (IPOs) and trading restrictions."
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "Throughout the day, new orders are added, and orders that are executed and canceled are removed from the order book. The proper accounting for messages that reference orders placed on a prior date would require tracking the order book over multiple days, but we are ignoring this aspect here."
+      ]
+    },
+    {
+      "index": 13,
+      "source": [
+        "### Get all messages for given stock"
+      ]
+    },
+    {
+      "index": 14,
+      "source": [
+        "The `get_messages()` function illustrates how to collect the orders for a single stock that affects trading (refer to the ITCH specification for details about each message):"
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "### Combine Trading Records"
+      ]
+    },
+    {
+      "index": 19,
+      "source": [
+        "Reconstructing successful trades, that is, orders that are executed as opposed to those that were canceled from trade-related message types, C, E, P, and Q, is relatively straightforward:"
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "### Create Orders"
+      ]
+    },
+    {
+      "index": 24,
+      "source": [
+        "The order book keeps track of limit orders, and the various price levels for buy and sell orders constitute the depth of the order book. To reconstruct the order book for a given level of depth requires the following steps:\n"
+      ]
+    },
+    {
+      "index": 25,
+      "source": [
+        "The `add_orders()` function accumulates sell orders in ascending, and buy orders in descending order for a given timestamp up to the desired level of depth:"
+      ]
+    },
+    {
+      "index": 28,
+      "source": [
+        "We iterate over all ITCH messages and process orders and their replacements as required by the specification (this can take a while):"
+      ]
+    },
+    {
+      "index": 32,
+      "source": [
+        "## Order Book Depth"
+      ]
+    },
+    {
+      "index": 34,
+      "source": [
+        "### Price to Decimals"
+      ]
+    },
+    {
+      "index": 36,
+      "source": [
+        "### Remove outliers"
+      ]
+    },
+    {
+      "index": 39,
+      "source": [
+        "### Buy-Sell Order Distribution"
+      ]
+    },
+    {
+      "index": 40,
+      "source": [
+        "The number of orders at different price levels, highlighted in the following screenshot using different intensities for buy and sell orders, visualizes the depth of liquidity at any given point in time."
+      ]
+    },
+    {
+      "index": 41,
+      "source": [
+        "The distribution of limit order prices was weighted toward buy orders at higher prices."
+      ]
+    },
+    {
+      "index": 44,
+      "source": [
+        "### Order Book Depth"
+      ]
+    },
+    {
+      "index": 49,
+      "source": [
+        "The following plots the evolution of limit orders and prices throughout the trading day: the dark line tracks the prices for executed trades during market hours, whereas the red and blue dots indicate individual limit orders on a per-minute basis (see notebook for details)"
+      ]
+    }
+  ],
+  "01_NASDAQ_TotalView-ITCH_Order_Book\\03_normalize_tick_data.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Analyze Order Book Data"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "## Imports & Settings"
+      ]
+    },
+    {
+      "index": 5,
+      "source": [
+        "## Load system event data"
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "## Trade Summary"
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "We will combine the messages that refer to actual trades to learn about the volumes for each asset."
+      ]
+    },
+    {
+      "index": 10,
+      "source": [
+        "As expected, a small number of the over 8,500 equity securities traded on this day account for most trades"
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "## AAPL Trade Summary"
+      ]
+    },
+    {
+      "index": 15,
+      "source": [
+        "## Tick Bars"
+      ]
+    },
+    {
+      "index": 16,
+      "source": [
+        "The trade data is indexed by nanoseconds and is very noisy. The bid-ask bounce, for instance, causes the price to oscillate between the bid and ask prices when trade initiation alternates between buy and sell market orders. To improve the noise-signal ratio and improve the statistical properties, we need to resample and regularize the tick data by aggregating the trading activity."
+      ]
+    },
+    {
+      "index": 17,
+      "source": [
+        "We typically collect the open (first), low, high, and closing (last) price for the aggregated period, alongside the volume-weighted average price (VWAP), the number of shares traded, and the timestamp associated with the data."
+      ]
+    },
+    {
+      "index": 19,
+      "source": [
+        "### Test for Normality of tick returns"
+      ]
+    },
+    {
+      "index": 21,
+      "source": [
+        "## Regularizing Tick Data"
+      ]
+    },
+    {
+      "index": 22,
+      "source": [
+        "### Price-Volume Chart"
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "We will use the `price_volume` function to compare the price-volume relation for various regularization methods."
+      ]
+    },
+    {
+      "index": 25,
+      "source": [
+        "### Time Bars"
+      ]
+    },
+    {
+      "index": 26,
+      "source": [
+        "Time bars involve trade aggregation by period."
+      ]
+    },
+    {
+      "index": 28,
+      "source": [
+        "We create time bars using the `.resample()` method with the desired period."
+      ]
+    },
+    {
+      "index": 31,
+      "source": [
+        "### Bokeh Candlestick Chart"
+      ]
+    },
+    {
+      "index": 32,
+      "source": [
+        "Alternative visualization using the the [bokeh](https://bokeh.pydata.org/en/latest/) library:"
+      ]
+    },
+    {
+      "index": 34,
+      "source": [
+        "### Volume Bars"
+      ]
+    },
+    {
+      "index": 35,
+      "source": [
+        "Time bars smooth some of the noise contained in the raw tick data but may fail to account for the fragmentation of orders. Execution-focused algorithmic trading may aim to match the volume weighted average price (VWAP) over a given period, and will divide a single order into multiple trades and place orders according to historical patterns. Time bars would treat the same order differently, even though no new information has arrived in the market.\n",
+        "\n",
+        "Volume bars offer an alternative by aggregating trade data according to volume. We can accomplish this as follows:"
+      ]
+    },
+    {
+      "index": 41,
+      "source": [
+        "### Dollar Bars"
+      ]
+    }
+  ],
+  "02_algoseek_intraday\\algoseek_minute_data.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Processing Algoseek's Trade & Quote Minute Bar data"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "In this notebook, we load the high-quality NASDAQ100 minute-bar trade-and-quote data generously provided by [Algoseek](https://www.algoseek.com/) (available [here](https://www.algoseek.com/ml4t-book-data.html)) that we will use in [Chapter 12](../../12_gradient_boosting_machines) to develop an intraday trading strategy. "
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Imports & Settings"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "## Algoseek Trade & Quote Minute Bar Data"
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "### Data Dictionary"
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "The Quote fields are based on changes to the NBBO ([National Best Bid Offer](https://www.investopedia.com/terms/n/nbbo.asp)) from the top-of-book price and size from\n",
+        "each of the exchanges.\n",
+        "\n",
+        "The enhanced Trade & Quote bar fields include the following fields:\n",
+        "- **Field**: Name of Field.\n",
+        "- **Q / T**: Field based on Quotes or Trades\n",
+        "- **Type**: Field format\n",
+        "- **No Value**: Value of field when there is no value or data. \n",
+        "  - Note: \u201cNever\u201d means field should always have a value EXCEPT for the first bar of the day.\n",
+        "- **Description**: Description of the field."
+      ]
+    },
+    {
+      "index": 9,
+      "source": [
+        "| id  | Field                   | Q/T  | Type                          |  No Value | Description                                                                                                                                                                                                         |\n",
+        "|:---:|:------------------------|:----:|:------------------------------|:---------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n",
+        "| 1  | `Date`                   |      | YYYYMMDD                      | Never     | Trade Date                                                                                                                                                                                                          |\n",
+        "| 2  | `Ticker`                 |      | String                       | Never      | Ticker Symbol                                                                                                                                                                                                       |\n",
+        "| 3  | `TimeBarStart`           |      | HHMM <br>HHMMSS <br>HHMMSSMMM | Never     | For minute bars: HHMM. <br>For second bars: HHMMSS. <br>Examples<br>- One second bar 130302 is from time greater than 130301 to 130302.<br>- One minute bar 1104 is from time greater than 1103 to 1104. |\n",
+        "| 4  | `OpenBarTime`            | Q    | HHMMSSMMM                    | Never      | Open Time of the Bar, for example one minute:<br>11:03:00.000                                                                                                                                                       |\n",
+        "| 5  | `OpenBidPrice`           | Q    | Number                        | Never     | NBBO Bid Price as of bar Open                                                                                                                                                                                       |\n",
+        "| 6  | `OpenBidSize`            | Q    | Number                        | Never     | Total Size from all Exchanges with<br>OpenBidPrice                                                                                                                                                                  |\n",
+        "| 7  | `OpenAskPrice`           | Q    | Number                        | Never     | NBBO Ask Price as of bar Open                                                                                                                                                                                       |\n",
+        "| 8  | `OpenAskSize`            | Q    | Number                        | Never     | Total Size from all Exchange with<br>OpenAskPrice                                                                                                                                                                   |\n",
+        "| 9  | `FirstTradeTime`         | T    | HHMMSSMMM                     | Blank     | Time of first Trade                                                                                                                                                                                                 |\n",
+        "| 10 | `FirstTradePrice`        | T    | Number                        | Blank     | Price of first Trade                                                                                                                                                                                                |\n",
+        "| 11 | `FirstTradeSize`         | T    | Number                        | Blank     | Number of shares of first trade                                                                                                                                                                                     |\n",
+        "| 12 | `HighBidTime`            | Q    | HHMMSSMMM                     | Never     | Time of highest NBBO Bid Price                                                                                                                                                                                      |\n",
+        "| 13 | `HighBidPrice`           | Q    | Number                        | Never     | Highest NBBO Bid Price                                                                                                                                                                                              |\n",
+        "| 14 | `HighBidSize`            | Q    | Number                        | Never     | Total Size from all Exchanges with HighBidPrice                                                                                                                                                                  |\n",
+        "| 15 | `AskPriceAtHighBidPrice` | Q    | Number                        | Never     | Ask Price at time of Highest Bid Price                                                                                                                                                                              |\n",
+        "| 16 | `AskSizeAtHighBidPrice`  | Q    | Number                        | Never     | Total Size from all Exchanges with `AskPriceAtHighBidPrice`                                                                                                                                                        |\n",
+        "| 17 | `HighTradeTime`          | T    | HHMMSSMMM                     | Blank     | Time of Highest Trade                                                                                                                                                                                               |\n",
+        "| 18 | `HighTradePrice`         | T    | Number                        | Blank     | Price of highest Trade                                                                                                                                                                                              |\n",
+        "| 19 | `HighTradeSize`          | T    | Number                        | Blank     | Number of shares of highest trade                                                                                                                                                                                   |\n",
+        "| 20 | `LowBidTime`             | Q    | HHMMSSMMM                     | Never     | Time of lowest Bid                                                                                                                                                                                                  |\n",
+        "| 21 | `LowBidPrice`            | Q    | Number                        | Never     | Lowest NBBO Bid price of bar.                                                                                                                                                                                       |\n",
+        "| 22 | `LowBidSize`             | Q    | Number                        | Never     | Total Size from all Exchanges with `LowBidPrice`                                                                                                                                                                   |\n",
+        "| 23 | `AskPriceAtLowBidPrice`  | Q    | Number                        | Never     | Ask Price at lowest Bid price                                                                                                                                                                                       |\n",
+        "| 24  | `AskSizeAtLowBidPrice`  | Q    | Number                        | Never     | Total Size from all Exchanges with `AskPriceAtLowBidPrice`                                                                                                                                                                                       |\n",
+        "| 25  | `LowTradeTime`          | T    | HHMMSSMMM                     | Blank     | Time of lowest Trade                                                                                                                                                                                                                             |\n",
+        "| 26  | `LowTradePrice`         | T    | Number                        | Blank     | Price of lowest Trade                                                                                                                                                                                                                            |\n",
+        "| 27  | `LowTradeSize`          | T    | Number                        | Blank     | Number of shares of lowest trade                                                                                                                                                                                                                 |\n",
+        "| 28  | `CloseBarTime`          | Q    | HHMMSSMMM                     | Never     | Close Time of the Bar, for example one minute: 11:03:59.999                                                                                                                                                                                      |\n",
+        "| 29  | `CloseBidPrice`         | Q    | Number                        | Never     | NBBO Bid Price at bar Close                                                                                                                                                                                                                      |\n",
+        "| 30  | `CloseBidSize`          | Q    | Number                        | Never     | Total Size from all Exchange with `CloseBidPrice`                                                                                                                                                                                                |\n",
+        "| 31  | `CloseAskPrice`         | Q    | Number                        | Never     | NBBO Ask Price at bar Close                                                                                                                                                                                                                      |\n",
+        "| 32  | `CloseAskSize`          | Q    | Number                        | Never     | Total Size from all Exchange with `CloseAskPrice`                                                                                                                                                                                                |\n",
+        "| 33  | `LastTradeTime`         | T    | HHMMSSMMM                     | Blank     | Time of last Trade                                                                                                                                                                                                                               |\n",
+        "| 34  | `LastTradePrice`        | T    | Number                        | Blank     | Price of last Trade                                                                                                                                                                                                                              |\n",
+        "| 35  | `LastTradeSize`         | T    | Number                        | Blank     | Number of shares of last trade                                                                                                                                                                                                                   |\n",
+        "| 36  | `MinSpread`             | Q    | Number                        | Never     | Minimum Bid-Ask spread size. This may be 0 if the market was crossed during the bar.<br/>If negative spread due to back quote, make it 0.                                                                                                            |\n",
+        "| 37  | `MaxSpread`             | Q    | Number                        | Never     | Maximum Bid-Ask spread in bar                                                                                                                                                                                                                    |\n",
+        "| 38  | `CancelSize`            | T    | Number                        | 0         | Total shares canceled. Default=blank                                                                                                                                                                                                             |\n",
+        "| 39  | `VolumeWeightPrice`     | T    | Number                        | Blank     | Trade Volume weighted average price <br>Sum((`Trade1Shares`*`Price`)+(`Trade2Shares`*`Price`)+\u2026)/`TotalShares`. <br>Note: Blank if no trades.                                                                                                        |\n",
+        "| 40  | `NBBOQuoteCount`        | Q    | Number                        | 0         | Number of Bid and Ask NNBO quotes during bar period.                                                                                                                                                                                             |\n",
+        "| 41  | `TradeAtBid`            | Q,T  | Number                        | 0         | Sum of trade volume that occurred at or below the bid (a trade reported/printed late can be below current bid).                                                                                                                                  |\n",
+        "| 42  | `TradeAtBidMid`         | Q,T  | Number                        | 0         | Sum of trade volume that occurred between the bid and the mid-point:<br/>(Trade Price > NBBO Bid ) & (Trade Price < NBBO Mid )                                                                                                                       |\n",
+        "| 43  | `TradeAtMid`            | Q,T  | Number                        | 0         | Sum of trade volume that occurred at mid.<br/>TradePrice = NBBO MidPoint                                                                                                                                                                             |\n",
+        "| 44  | `TradeAtMidAsk`         | Q,T  | Number                        | 0         | Sum of ask volume that occurred between the mid and ask:<br/>(Trade Price > NBBO Mid) & (Trade Price < NBBO Ask)                                                                                                                                     |\n",
+        "| 45  | `TradeAtAsk`            | Q,T  | Number                        | 0         | Sum of trade volume that occurred at or above the Ask.                                                                                                                                                                                           |\n",
+        "| 46  | `TradeAtCrossOrLocked`  | Q,T  | Number                        | 0         | Sum of trade volume for bar when national best bid/offer is locked or crossed. <br>Locked is Bid = Ask <br>Crossed is Bid > Ask                                                                                                                  |\n",
+        "| 47  | `Volume`                | T    | Number                        | 0         | Total number of shares traded                                                                                                                                                                                                                    |\n",
+        "| 48  | `TotalTrades`           | T    | Number                        | 0         | Total number of trades                                                                                                                                                                                                                           |\n",
+        "| 49  | `FinraVolume`           | T    | Number                        | 0         | Number of shares traded that are reported by FINRA. <br/>Trades reported by FINRA are from broker-dealer internalization, dark pools, Over-The-Counter, etc. <br/>FINRA trades represent volume that is hidden or not public available to trade.         |\n",
+        "| 50  | `UptickVolume`          | T    | Integer                       | 0         | Total number of shares traded with upticks during bar.<br/>An uptick = ( trade price > last trade price )                                                                                                                                                                                                                               |\n",
+        "| 51  | `DowntickVolume`        | T    | Integer                       | 0         | Total number of shares traded with downticks during bar.<br/>A downtick = ( trade price < last trade price )                                                                                                                                                                                                                            |\n",
+        "| 52  | `RepeatUptickVolume`    | T    | Integer                       | 0         | Total number of shares where trade price is the same (repeated) and last price change was up during bar. <br/>Repeat uptick = ( trade price == last trade price ) & (last tick direction == up )                                                                                                                                         |\n",
+        "| 53  | `RepeatDowntickVolume`  | T    | Integer                       | 0         | Total number of shares where trade price is the same (repeated) and last price change was down during bar. <br/>Repeat downtick = ( trade price == last trade price ) & (last tick direction == down )                                                                                                                                   |\n",
+        "| 54  | `UnknownVolume`         | T    | Integer                       | 0         | When the first trade of the day takes place, the tick direction is \u201cunknown\u201d as there is no previous Trade to compare it to.<br/>This field is the volume of the first trade after 4am and acts as an initiation value for the tick volume directions.<br/>In future this bar will be renamed to `UnkownTickDirectionVolume` .  |"
+      ]
+    },
+    {
+      "index": 10,
+      "source": [
+        "### Notes\n",
+        "\n",
+        "**Empty Fields**\n",
+        "\n",
+        "An empty field has no value and is \u201cBlank\u201d , for example FirstTradeTime and there are no trades during the bar period. \n",
+        "The field `Volume` measuring total number of shares traded in bar will be `0` if there are no Trades (see `No Value` column above for each field).\n",
+        "\n",
+        "**No Bid/Ask/Trade OHLC**\n",
+        "\n",
+        "During a bar timeframe there may not be a change in the NBBO or an actual Trade. \n",
+        "For example, there can be a bar with OHLC Bid/Ask but no Trade OHLC.\n",
+        "\n",
+        "**Single Event**\n",
+        "\n",
+        "For bars with only one trade, one NBBO bid or one NBBO ask then Open/High/Low/Close price,size andtime will be the same.\n",
+        "\n",
+        "**`AskPriceAtHighBidPrice`, `AskSizeAtHighBidPrice`, `AskPriceAtLowBidPrice`, `AskSizeAtLowBidPrice` Fields** \n",
+        "\n",
+        "To provide consistent Bid/Ask prices at a point in time while showing the low/high Bid/Ask for the bar, AlgoSeek uses the low/high `Bid` and the corresponding `Ask` at that price.\n",
+        "\n",
+        "### FAQ\n",
+        "\n",
+        "**Why are Trade Prices often inside the Bid Price to Ask Price range?**\n",
+        "\n",
+        "The Low/High Bid/Ask is the low and high NBBO price for the bar range. \n",
+        "Very often a Trade may not occur at these prices as the price may only last a few seconds or executions are being crossed at mid-point due to hidden order types that execute at mid-point or as price improvement over current `Bid`/`Ask`.\n",
+        "\n",
+        "**How to get exchange tradable shares?** \n",
+        "\n",
+        "To get the exchange tradable volume in a bar subtract `Volume` from `FinraVolume`. \n",
+        "- `Volume` is the total number of shares traded. \n",
+        "- ``FinraVolume`` is the total number of shares traded that are reported as executions by FINRA. \n",
+        "\n",
+        "When a trade is done that is off the listed exchanges, it must be reported to FINRA by the brokerage firm or dark pool. Examples include: \n",
+        "- internal crosses by broker dealer\n",
+        "- over-the-counter block trades, and\n",
+        "- dark pool executions."
+      ]
+    },
+    {
+      "index": 11,
+      "source": [
+        "## Data prep"
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "We use the 'Trade and Quote' dataset - see [documentation](https://us-equity-market-data-docs.s3.amazonaws.com/algoseek.US.Equity.TAQ.Minute.Bars.pdf) for details on the definition of the numerous fields."
+      ]
+    },
+    {
+      "index": 16,
+      "source": [
+        "We will shorten most of the field names to reduce typing:"
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "The Algoseek minute-bar data comes in compressed csv files that contain the data for one symbol and day, organized in three directories for each year (2015-17). The function `extract_and_combine_data` reads the ~80K source files and combines them into a single `hdf5` file for faster access. \n",
+        "\n",
+        ">The data is fairly large (>8GB), and if you run into memory constraints, please modify the code to process the data in smaller chunks. One options is to iterate over the three directories containing data for a single year only, and storing each year separately."
+      ]
+    },
+    {
+      "index": 24,
+      "source": [
+        "## NASDAQ 100 Constituents"
+      ]
+    },
+    {
+      "index": 25,
+      "source": [
+        "The dataset contains 142 stocks because there were multiple changes to index membership over the 2015-17 period:"
+      ]
+    },
+    {
+      "index": 27,
+      "source": [
+        "The below heatmap highlights the frequent entry/exit points of various securities, which emphasizes the need for a survivorship-free dataset."
+      ]
+    }
+  ],
+  "03_data_providers\\01_pandas_datareader_demo.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Remote data access using pandas"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "The pandas library enables access to data displayed on websites using the `read_html()` function and access to the API endpoints of various data providers through the related `pandas-datareader` library."
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Imports & Settings"
+      ]
+    },
+    {
+      "index": 5,
+      "source": [
+        "## Download html table with SP500 constituents"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "The download of the content of one or more html tables works as follows, for instance for the constituents of the S&P500 index from Wikipedia"
+      ]
+    },
+    {
+      "index": 10,
+      "source": [
+        "## pandas-datareader for Market Data"
+      ]
+    },
+    {
+      "index": 11,
+      "source": [
+        "`pandas` used to facilitate access to data providers' APIs directly, but this functionality has moved to the related pandas-datareader library. The stability of the APIs varies with provider policies, and as of June 2o18 at version 0.7, the following sources are available"
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "See [documentation](https://pandas-datareader.readthedocs.io/en/latest/); functionality frequently changes as underlying provider APIs evolve."
+      ]
+    },
+    {
+      "index": 13,
+      "source": [
+        "### Yahoo Finance"
+      ]
+    },
+    {
+      "index": 16,
+      "source": [
+        "### IEX"
+      ]
+    },
+    {
+      "index": 17,
+      "source": [
+        "IEX is an alternative exchange started in response to the HFT controversy and portrayed in Michael Lewis' controversial Flash Boys. It aims to slow down the speed of trading to create a more level playing field and has been growing rapidly since launch in 2016 while still small with a market share of around 2.5% in June 2018."
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "> **Note:** IEX now requires an [API](https://iexcloud.io/) key after registration for (free) account that you can store as environment variable and retrieve as illustrated below, or pass directly via keyword argument to `pandas_datareader`."
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "#### Book Data\n",
+        "\n",
+        "In addition to historical EOD price and volume data, IEX provides real-time depth of book quotations that offer an aggregated size of orders by price and side. This service also includes last trade price and size information.\n",
+        "\n",
+        "DEEP is used to receive real-time depth of book quotations direct from IEX. The depth of book quotations received via DEEP provide an aggregated size of resting displayed orders at a price and side, and do not indicate the size or number of individual orders at any price level. Non-displayed orders and non-displayed portions of reserve orders are not represented in DEEP.\n",
+        "\n",
+        "DEEP also provides last trade price and size information. Trades resulting from either displayed or non-displayed orders matching on IEX will be reported. Routed executions will not be reported."
+      ]
+    },
+    {
+      "index": 24,
+      "source": [
+        "Only works on trading days."
+      ]
+    },
+    {
+      "index": 30,
+      "source": [
+        "### Quandl"
+      ]
+    },
+    {
+      "index": 31,
+      "source": [
+        "Obtain Quandl [API Key](https://www.quandl.com/tools/api) and store in environment variable as `QUANDL_API_KEY`."
+      ]
+    },
+    {
+      "index": 33,
+      "source": [
+        "### FRED"
+      ]
+    },
+    {
+      "index": 36,
+      "source": [
+        "### Fama/French"
+      ]
+    },
+    {
+      "index": 39,
+      "source": [
+        "### World Bank"
+      ]
+    },
+    {
+      "index": 42,
+      "source": [
+        "### OECD"
+      ]
+    },
+    {
+      "index": 44,
+      "source": [
+        "\n",
+        "\n",
+        "### Stooq"
+      ]
+    },
+    {
+      "index": 45,
+      "source": [
+        "Google finance stopped providing common index data download. The Stooq site had this data for download for a while but is currently broken, awaiting release of [fix](https://github.com/pydata/pandas-datareader/issues/594)"
+      ]
+    },
+    {
+      "index": 50,
+      "source": [
+        "### NASDAQ Symbols"
+      ]
+    },
+    {
+      "index": 52,
+      "source": [
+        "### Tiingo"
+      ]
+    },
+    {
+      "index": 53,
+      "source": [
+        "Requires [signing up](https://api.tiingo.com/) and storing API key in environment"
+      ]
+    }
+  ],
+  "03_data_providers\\02_yfinance_demo.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Downloading Market and Fundamental Data with `yfinance`"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "## Imports & Settings"
+      ]
+    },
+    {
+      "index": 4,
+      "source": [
+        "## How to work with a Ticker object"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "### Show ticker info"
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "### Get market data"
+      ]
+    },
+    {
+      "index": 10,
+      "source": [
+        "### View company actions"
+      ]
+    },
+    {
+      "index": 14,
+      "source": [
+        "### Annual and Quarterly Financial Statement Summary"
+      ]
+    },
+    {
+      "index": 17,
+      "source": [
+        "### Annual and Quarterly Balance Sheet"
+      ]
+    },
+    {
+      "index": 20,
+      "source": [
+        "### Annual and Quarterly Cashflow Statement"
+      ]
+    },
+    {
+      "index": 25,
+      "source": [
+        "### Sustainability: Environmental, Social and Governance (ESG)"
+      ]
+    },
+    {
+      "index": 27,
+      "source": [
+        "### Analyst Recommendations"
+      ]
+    },
+    {
+      "index": 30,
+      "source": [
+        "### Upcoming Events"
+      ]
+    },
+    {
+      "index": 32,
+      "source": [
+        "### Option Expiration Dates"
+      ]
+    },
+    {
+      "index": 39,
+      "source": [
+        "## Data Download with proxy server"
+      ]
+    },
+    {
+      "index": 40,
+      "source": [
+        "You can use a proxy server to avoid having your IP blacklisted as illustrated below (but need an actual PROXY_SERVER)."
+      ]
+    },
+    {
+      "index": 42,
+      "source": [
+        "The following will only work with proper PROXY_SERVER..."
+      ]
+    },
+    {
+      "index": 44,
+      "source": [
+        "## Downloading multiple symbols"
+      ]
+    }
+  ],
+  "03_data_providers\\03_lobster_itch_data.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Tick Data from LOBSTER"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "LOBSTER (Limit Order Book System - The Efficient Reconstructor) is an [online](https://lobsterdata.com/info/WhatIsLOBSTER.php) limit order book data tool to provide easy-to-use, high-quality limit order book data.\n",
+        "\n",
+        "Since 2013 LOBSTER acts as a data provider for the academic community, giving access to reconstructed limit order book data for the entire universe of NASDAQ traded stocks. \n",
+        "\n",
+        "More recently, it has started to make the data available on a commercial basis."
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Imports"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "## Load Orderbook Data"
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "We will illustrate the functionality using a free sample."
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "Obtain data here: https://lobsterdata.com/info/DataSamples.php; [this](https://lobsterdata.com/info/sample/LOBSTER_SampleFile_AMZN_2012-06-21_10.zip) is the link to the 10-level file"
+      ]
+    },
+    {
+      "index": 9,
+      "source": [
+        "The code assumes the file has been extracted into a `data` subfolder of the current directory."
+      ]
+    },
+    {
+      "index": 11,
+      "source": [
+        "We use the following to label the table columns:"
+      ]
+    },
+    {
+      "index": 17,
+      "source": [
+        "## Parse Message Data"
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "Message Type Codes:\n",
+        "\n",
+        "    1: Submission of a new limit order\n",
+        "    2: Cancellation (Partial deletion \n",
+        "       of a limit order)\n",
+        "    3: Deletion (Total deletion of a limit order)\n",
+        "    4: Execution of a visible limit order\t\t\t   \t \n",
+        "    5: Execution of a hidden limit order\n",
+        "    7: Trading halt indicator \t\t\t\t   \n",
+        "       (Detailed information below)"
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "Around 80% of executions were visible, the remaining 20% were not:"
+      ]
+    },
+    {
+      "index": 26,
+      "source": [
+        "## Combine message and price data"
+      ]
+    },
+    {
+      "index": 30,
+      "source": [
+        "## Plot limit order prices for messages with visible or hidden execution"
+      ]
+    },
+    {
+      "index": 33,
+      "source": [
+        "## Plot prices for all order types"
+      ]
+    }
+  ],
+  "03_data_providers\\04_quandl_demo.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Quandl - API Demo"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "Quandl uses a very straightforward API to make its free and premium data available. Currently, 50 anonymous calls are allowed, then a (free) API key is required. See [documentation](https://www.quandl.com/tools/api) for more details."
+      ]
+    }
+  ],
+  "03_data_providers\\05_zipline_data_demo.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Data Access with Zipline"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "Zipline is the algorithmic trading library that used to power the now-defunct Quantopian backtesting and live-trading platform. It is also available offline to develop a strategy using a limited number of free data bundles that can be ingested and used to test the performance of trading ideas."
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Zipline installation"
+      ]
+    },
+    {
+      "index": 3,
+      "source": [
+        "> This notebook requires the `conda` environment `backtest`. Please see the [installation instructions](../installation/README.md) for running the latest Docker image or alternative ways to set up your environment."
+      ]
+    },
+    {
+      "index": 4,
+      "source": [
+        "There is much more information about Zipline in [Chapter 8](../../08_ml4t_workflow/04_ml4t_workflow_with_zipline)."
+      ]
+    },
+    {
+      "index": 5,
+      "source": [
+        "## Imports & Settings"
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "## zipline Demo"
+      ]
+    },
+    {
+      "index": 9,
+      "source": [
+        "### Ingest Data"
+      ]
+    },
+    {
+      "index": 10,
+      "source": [
+        "Get QUANDL API key and follow instructions to download zipline bundles [here](https://zipline.ml4trading.io/bundles.html). This boils down to running:"
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "See `zipline` [docs](https://zipline.ml4trading.io/bundles.html) on the download and management of data bundles used to simulate backtests. \n",
+        "\n",
+        "The following commandline instruction lists the available bundles (store per default in `~/.zipline`. "
+      ]
+    },
+    {
+      "index": 14,
+      "source": [
+        "### Data access using zipline"
+      ]
+    },
+    {
+      "index": 15,
+      "source": [
+        "The following code illustrates how zipline permits us to access daily stock data for a range of companies. You can run zipline scripts in the Jupyter Notebook using the magic function of the same name."
+      ]
+    },
+    {
+      "index": 16,
+      "source": [
+        "First, you need to initialize the context with the desired security symbols. We'll also use a counter variable. Then zipline calls handle_data, where we use the `data.history()` method to look back a single period and append the data for the last day to a .csv file:"
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "We can plot the data as follows:"
+      ]
+    },
+    {
+      "index": 20,
+      "source": [
+        "### Simple moving average strategy"
+      ]
+    },
+    {
+      "index": 21,
+      "source": [
+        "The following code example illustrates a [Dual Moving Average Cross-Over Strategy](https://zipline.ml4trading.io/beginner-tutorial.html#access-to-previous-prices-using-history) to demonstrate Zipline in action:"
+      ]
+    }
+  ],
+  "04_sec_edgar\\edgar_xbrl.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Working with filing data from the SEC's EDGAR service"
+      ]
+    },
+    {
+      "index": 5,
+      "source": [
+        "## Download FS & Notes Data"
+      ]
+    },
+    {
+      "index": 6,
+      "source": [
+        "The following code downloads and extracts all historical filings contained in the [Financial Statement and Notes](https://www.sec.gov/dera/data/financial-statement-and-notes-data-set.html) (FSN) datasets from Q1/2014 through Q3/2020. \n",
+        "\n",
+        "> The SEC has moved to a monthly cadence after Q3/2020; feel free to extend the code by creating the correpsonding file names (see linked website) and download those as well."
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "**Downloads over 40GB of data!**"
+      ]
+    },
+    {
+      "index": 11,
+      "source": [
+        "## Save to parquet"
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "The data is fairly large and to enable faster access than the original text files permit, it is better to convert the text files to binary, columnar parquet format (see Section 'Efficient data storage with pandas' in chapter 2 for a performance comparison of various data-storage options compatible with pandas DataFrames):"
+      ]
+    },
+    {
+      "index": 13,
+      "source": [
+        "> Some fo the `txt.tsv` source files contain a small number of faulty lines; the code below drops those lines but indicates the line numbers where you can find the errors if you would like to investigate further. "
+      ]
+    },
+    {
+      "index": 15,
+      "source": [
+        "## Metadata json"
+      ]
+    },
+    {
+      "index": 17,
+      "source": [
+        "## Data Organization"
+      ]
+    },
+    {
+      "index": 18,
+      "source": [
+        "For each quarter, the FSN data is organized into eight file sets that contain information about submissions, numbers, taxonomy tags, presentation, and more. Each dataset consists of rows and fields and is provided as a tab-delimited text file:"
+      ]
+    },
+    {
+      "index": 19,
+      "source": [
+        "| File | Dataset      | Description                                                 |\n",
+        "|------|--------------|-------------------------------------------------------------|\n",
+        "| SUB  | Submission   | Identifies each XBRL submission by company, form, date, etc |\n",
+        "| TAG  | Tag          | Defines and explains each taxonomy tag                      |\n",
+        "| DIM  | Dimension    | Adds detail to numeric and plain text data                  |\n",
+        "| NUM  | Numeric      | One row for each distinct data point in filing              |\n",
+        "| TXT  | Plain Text   | Contains all non-numeric XBRL fields                        |\n",
+        "| REN  | Rendering    | Information for rendering on SEC website                    |\n",
+        "| PRE  | Presentation | Detail on tag and number presentation in primary statements |\n",
+        "| CAL  | Calculation  | Shows arithmetic relationships among tags                   |"
+      ]
+    },
+    {
+      "index": 20,
+      "source": [
+        "## Submission Data"
+      ]
+    },
+    {
+      "index": 21,
+      "source": [
+        "The latest submission file contains around 6,500 entries."
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "### Get AAPL submission"
+      ]
+    },
+    {
+      "index": 24,
+      "source": [
+        "The submission dataset contains the unique identifiers required to retrieve the filings: the Central Index Key (CIK) and the Accession Number (adsh). The following shows some of the information about Apple's 2018Q1 10-Q filing:"
+      ]
+    },
+    {
+      "index": 26,
+      "source": [
+        "## Build AAPL fundamentals dataset"
+      ]
+    },
+    {
+      "index": 27,
+      "source": [
+        "Using the central index key, we can identify all historical quarterly filings available for Apple, and combine this information to obtain 26 Forms 10-Q and nine annual Forms 10-K."
+      ]
+    },
+    {
+      "index": 28,
+      "source": [
+        "### Get filings"
+      ]
+    },
+    {
+      "index": 30,
+      "source": [
+        "We find 15 quarterly 10-Q and 4 annual 10-K reports:"
+      ]
+    },
+    {
+      "index": 32,
+      "source": [
+        "### Get numerical filing data"
+      ]
+    },
+    {
+      "index": 33,
+      "source": [
+        "With the Accession Number for each filing, we can now rely on the taxonomies to select the appropriate XBRL tags (listed in the TAG file) from the NUM and TXT files to obtain the numerical or textual/footnote data points of interest."
+      ]
+    },
+    {
+      "index": 34,
+      "source": [
+        "First, let's extract all numerical data available from the 19 Apple filings:"
+      ]
+    },
+    {
+      "index": 36,
+      "source": [
+        "In total, the nine years of filing history provide us with over 18,000 numerical values for AAPL."
+      ]
+    },
+    {
+      "index": 38,
+      "source": [
+        "## Create P/E Ratio from EPS and stock price data"
+      ]
+    },
+    {
+      "index": 39,
+      "source": [
+        "We can select a useful field, such as Earnings per Diluted Share (EPS), that we can combine with market data to calculate the popular Price/Earnings (P/E) valuation ratio."
+      ]
+    },
+    {
+      "index": 41,
+      "source": [
+        "We do need to take into account, however, that Apple split its stock 7:1 on June 4, 2014, and Adjusted Earnings per Share before the split to make earnings comparable, as illustrated in the following code block:"
+      ]
+    },
+    {
+      "index": 48,
+      "source": [
+        "## Explore Additional Fields"
+      ]
+    },
+    {
+      "index": 49,
+      "source": [
+        "The field `tag` references values defined in the taxonomy:"
+      ]
+    },
+    {
+      "index": 51,
+      "source": [
+        "We can select values of interest and track their value or use them as inputs to compute fundamental metrics like the Dividend/Share ratio."
+      ]
+    },
+    {
+      "index": 52,
+      "source": [
+        "### Dividends per Share"
+      ]
+    },
+    {
+      "index": 55,
+      "source": [
+        "## Bonus: Textual Information"
+      ]
+    },
+    {
+      "index": 57,
+      "source": [
+        "AAPL's adsh is not avaialble in the txt file but you can obtain notes from the financial statements here:"
+      ]
+    }
+  ],
+  "05_storage_benchmark\\storage_benchmark.ipynb": [
+    {
+      "index": 0,
+      "source": [
+        "# Storage Benchmark"
+      ]
+    },
+    {
+      "index": 1,
+      "source": [
+        "In this notebook, we'll compare the following storage formats:\n",
+        "- CSV: Comma-separated, standard flat text file format.\n",
+        "- HDF5: Hierarchical data format, developed initially at the National Center for Supercomputing Applications. It is a fast and scalable storage format for numerical data, available in pandas using the PyTables library.\n",
+        "- Parquet: Part of the Apache Hadoop ecosystem, a binary, columnar storage format that provides efficient data compression and encoding and has been developed by Cloudera and Twitter. It is available for pandas through the `pyarrow` library, led by Wes McKinney, the original author of pandas.\n",
+        "\n",
+        "This notebook compares the performance of the preceding libraries using a test DataFrame that can be configured to contain numerical or text data, or both. For the HDF5 library, we test both the fixed and table formats. The table format allows for queries and can be appended to.\n",
+        "\n",
+        "## Usage\n",
+        "\n",
+        "To recreate the charts used in the book, you need to run this notebook twice up to section 'Store Result' using different settings for `data_type` and arguments for `generate_test_data` as follows:\n",
+        "1. `data_type='Numeric`: `numerical_cols=2000`, `text_cols=0` (default)\n",
+        "2. `data_type='Mixed`: `numerical_cols=1000`, `text_cols=1000`"
+      ]
+    },
+    {
+      "index": 2,
+      "source": [
+        "## Imports & Settings"
+      ]
+    },
+    {
+      "index": 7,
+      "source": [
+        "## Generate Test Data"
+      ]
+    },
+    {
+      "index": 8,
+      "source": [
+        "The test `DataFrame` that can be configured to contain numerical or text data, or both. For the HDF5 library, we test both the fixed and table format. "
+      ]
+    },
+    {
+      "index": 12,
+      "source": [
+        "## Parquet"
+      ]
+    },
+    {
+      "index": 13,
+      "source": [
+        "### Size"
+      ]
+    },
+    {
+      "index": 16,
+      "source": [
+        "### Read"
+      ]
+    },
+    {
+      "index": 20,
+      "source": [
+        "### Write"
+      ]
+    },
+    {
+      "index": 23,
+      "source": [
+        "### Results"
+      ]
+    },
+    {
+      "index": 25,
+      "source": [
+        "## HDF5"
+      ]
+    },
+    {
+      "index": 27,
+      "source": [
+        "### Fixed Format"
+      ]
+    },
+    {
+      "index": 28,
+      "source": [
+        "#### Size"
+      ]
+    },
+    {
+      "index": 30,
+      "source": [
+        "#### Read"
+      ]
+    },
+    {
+      "index": 34,
+      "source": [
+        "#### Write"
+      ]
+    },
+    {
+      "index": 37,
+      "source": [
+        "#### Results"
+      ]
+    },
+    {
+      "index": 39,
+      "source": [
+        "### Table Format"
+      ]
+    },
+    {
+      "index": 40,
+      "source": [
+        "#### Size"
+      ]
+    },
+    {
+      "index": 42,
+      "source": [
+        "#### Read"
+      ]
+    },
+    {
+      "index": 46,
+      "source": [
+        "#### Write"
+      ]
+    },
+    {
+      "index": 47,
+      "source": [
+        "Note that `write` in table format does not work with text data."
+      ]
+    },
+    {
+      "index": 50,
+      "source": [
+        "#### Results"
+      ]
+    },
+    {
+      "index": 52,
+      "source": [
+        "### Table Select"
+      ]
+    },
+    {
+      "index": 53,
+      "source": [
+        "#### Size"
+      ]
+    },
+    {
+      "index": 55,
+      "source": [
+        "#### Read"
+      ]
+    },
+    {
+      "index": 60,
+      "source": [
+        "#### Write"
+      ]
+    },
+    {
+      "index": 63,
+      "source": [
+        "#### Results"
+      ]
+    },
+    {
+      "index": 65,
+      "source": [
+        "## CSV"
+      ]
+    },
+    {
+      "index": 67,
+      "source": [
+        "### Size"
+      ]
+    },
+    {
+      "index": 69,
+      "source": [
+        "### Read"
+      ]
+    },
+    {
+      "index": 73,
+      "source": [
+        "### Write"
+      ]
+    },
+    {
+      "index": 76,
+      "source": [
+        "### Results"
+      ]
+    },
+    {
+      "index": 78,
+      "source": [
+        "## Store Results"
+      ]
+    },
+    {
+      "index": 80,
+      "source": [
+        "## Display Results"
+      ]
+    },
+    {
+      "index": 81,
+      "source": [
+        "Please run the notebook twice as described above under `Usage` to create the two `csv` files with results for different test data."
+      ]
+    }
+  ]
+}
