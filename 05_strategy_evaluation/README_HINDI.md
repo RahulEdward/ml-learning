@@ -1,152 +1,154 @@
 # Portfolio Optimization aur Performance Evaluation
 
-Market conditions ke tehat implementation se pehle kisi strategy ko test karne ke liye, humein un trades ko simulate karne ki zarurat hoti hai jo algorithm karega aur unki performance ko verify karna hota hai. Strategy evaluation mein strategy ke parameters ko optimize karne ke liye historical data ke khilaf backtesting shamil hai, aur naye, out-of-sample data ke khilaf in-sample performance ko validate karne ke liye forward-testing shamil hai. Iska maksad strategy ko specific past circumstances (purani paristhitiyon) ke hisab se tailor karne se hone wali false discoveries se bachna hai.
+To test a strategy prior to implementation under market conditions, hum need to simulate the trades that the algorithm would make aur verify their performance. Strategy evaluation includes backtesting against historical data to optimize the strategy's parameters aur forward-testing to validate the mein-sample performance against new, out-ka-sample data. The goal hai to avoid false discoveries from tailoring a strategy to specific past circumstances.
 
-Portfolio context mein, positive asset returns negative price movements ko offset (santulit) kar sakte hain. Ek asset ke liye positive price changes dusre asset par hone wale losses ko offset karne ki sambhavna utni hi zyada rakhte hain jitna kam unn dono positions ke beech correlation hoga. Portfolio risk positions ki covariance par kaise nirbhar karta hai, is aadhar par Harry Markowitz ne 1952 mein diversification par based modern portfolio management ki theory develop ki. Iska natija mean-variance optimization hai jo risk ko minimize karne ke liye assets ke given set ke liye weights select karta hai, jise given expected return ke liye returns ke standard deviation ke roop mein measure kiya jata hai.
+mein a portfolio context, positive asset returns can offset negative price movements. Positive price changes ke liye one asset hain more likely to offset losses on another the lower the correlation between the two positions. Based on how portfolio risk depends on the positions’ covariance, Harry Markowitz developed the theory behind modern portfolio management based on diversification mein 1952. The result hai mean-variance optimization that selects weights ke liye a given set ka assets to minimize risk, measured as the standard deviation ka returns ke liye a given expected return.
 
-Capital asset pricing model (CAPM) ek risk premium introduce karta hai, jise risk-free investment se excess expected return ke roop mein measure kiya jata hai, jo asset hold karne ke liye ek equilibrium reward hai. Ye reward ek single risk factor—market—ko exposure dene ka compensation hai jo asset ke liye idiosyncratic hone ke bajaye systematic hai aur isliye ise diversify karke hataya nahi ja sakta.
+The capital asset pricing model (CAPM) introduces a risk premium, measured as the expected return mein excess ka a risk-free investment, as an equilibrium reward ke liye holding an asset. Yeh reward compensates ke liye the exposure to a single risk factor—the market—that hai systematic as opposed to idiosyncratic to the asset aur thus cannot be diversified away. 
 
-Jaise-jaise additional risk factors aur exposure ke liye zyada granular choices ubhar kar aayi hain, Risk management develop hokar aur sophisticated ho gaya hai. Kelly criterion dynamic portfolio optimization ke liye ek popular approach hai, jo samay ke saath positions ke sequence ka choice hai; ise Edward Thorp ne 1968 mein gambling mein iske original application se stock market ke liye mashhur taur par adapt kiya tha.
+Risk management has evolved to become more sophisticated as additional risk factors aur more granular choices ke liye exposure have emerged. The Kelly criterion hai a popular approach to dynamic portfolio optimization, which hai the choice ka a sequence ka positions over time; it has been famously adapted from its original application mein gambling to the stock market by Edward Thorp mein 1968.
 
-Natijan, portfolios ko optimize karne ke liye kai approaches hain jinme assets ke beech hierarchical relationships seekhne aur unki holdings ko portfolio risk profile ke sandarbh mein complements ya substitutes maanne ke liye machine learning (ML) ka application shamil hai. Ye chapter nimnlikhit vishayon ko cover karega:
+As a result, there hain several approaches to optimize portfolios that include the application ka machine learning (ML) to learn hierarchical relationships among assets aur treat their holdings as complements or substitutes ke saath respect to the portfolio risk profile. Yeh chapter will cover the following topics:
 
-## Vishay Soochi (Content)
+## Vishay-suchi (Content)
 
-1. [Portfolio performance ko kaise measure karein](#portfolio-performance-ko-kaise-measure-karein)
-    * [(Adjusted) Sharpe Ratio](#adjusted-sharpe-ratio)
-    * [Active management ka fundamental law](#active-management-ka-fundamental-law)
-2. [Portfolio Risk aur Return ko kaise manage karein](#portfolio-risk-aur-return-ko-kaise-manage-karein)
-    * [Modern portfolio management ka evolution](#modern-portfolio-management-ka-evolution)
+1. [How to measure portfolio performance](#how-to-measure-portfolio-performance)
+    * [The (adjusted) Sharpe Ratio](#the-adjusted-sharpe-ratio)
+    * [The fundamental law of active management](#the-fundamental-law-of-active-management)
+2. [How to manage Portfolio Risk & Return](#how-to-manage-portfolio-risk--return)
+    * [The evolution of modern portfolio management](#the-evolution-of-modern-portfolio-management)
     * [Mean-variance optimization](#mean-variance-optimization)
-        - [Code Examples: Python mein efficient frontier dhundhna](#code-examples-python-mein-efficient-frontier-dhundhna)
-    * [Mean-variance optimization ke vikalp (Alternatives)](#mean-variance-optimization-ke-vikalp)
-        - [1/N portfolio](#1n-portfolio)
-        - [Minimum-variance portfolio](#minimum-variance-portfolio)
-        - [Black-Litterman approach](#black-litterman-approach)
-        - [Apne bets ka size kaise tay karein – Kelly rule](#apne-bets-ka-size-kaise-tay-karein-kelly-rule)
-        - [Python ke saath MV Optimization ke vikalp](#python-ke-saath-mv-optimization-ke-vikalp)
+        - [Code Examples: Finding the efficient frontier in Python](#code-examples-finding-the-efficient-frontier-in-python)
+    * [Alternatives to mean-variance optimization](#alternatives-to-mean-variance-optimization)
+        - [The 1/N portfolio](#the-1n-portfolio)
+        - [The minimum-variance portfolio](#the-minimum-variance-portfolio)
+        - [The Black-Litterman approach](#the-black-litterman-approach)
+        - [How to size your bets – the Kelly rule](#how-to-size-your-bets--the-kelly-rule)
+        - [Alternatives to MV Optimization with Python](#alternatives-to-mv-optimization-with-python)
     * [Hierarchical Risk Parity](#hierarchical-risk-parity)
-3. [`Zipline` ke saath portfolio ki Trading aur managing](#zipline-ke-saath-portfolio-ki-trading-aur-managing)
-    * [Code Examples: Trades aur portfolio optimization ke saath Backtests](#code-examples-trades-aur-portfolio-optimization-ke-saath-backtests)
-4. [`pyfolio` ke saath backtest performance measure karein](#pyfolio-ke-saath-backtest-performance-measure-karein)
-    * [Code Example: `Zipline` backtest se `pyfolio` evaluation](#code-example-zipline-backtest-se-pyfolio-evaluation)
+3. [Trading aur managing a portfolio ke saath `Zipline`](#trading-aur-managing-a-portfolio-ke saath-zipline)
+    * [Code Examples: Backtests with trades and portfolio optimization ](#code-examples-backtests-with-trades-and-portfolio-optimization-)
+4. [Measure backtest performance ke saath `pyfolio`](#measure-backtest-performance-ke saath-pyfolio)
+    * [Code Example: `pyfolio` evaluation from a `Zipline` backtest](#code-example-pyfolio-evaluation-from-a-zipline-backtest)
 
-## Portfolio performance ko kaise measure karein
+## How to measure portfolio performance
 
-Alag-alag strategies ko evaluate aur compare karne ke liye ya existing strategy ko improve karne ke liye, humein aise metrics ki zarurat hoti hai jo hamare objectives ke hisab se unki performance reflect karein. Investment aur trading mein, sabse common objectives **investment portfolio ka return aur risk** hain.
+To evaluate aur compare different strategies or to improve an existing strategy, hum need metrics that reflect their performance ke saath respect to our objectives. mein investment aur trading, the most common objectives hain the **return aur the risk ka the investment portfolio**.
 
-Return aur risk objectives ek trade-off imply karte hain: zyada risk lene se kuch halaat mein higher returns mil sakte hain, lekin iska matlab zyada downside bhi hai. Alag-alag strategies is trade-off ko kaise navigate karti hain ise compare karne ke liye, wo ratios bahut popular hain jo per unit of risk return ka measure compute karte hain. Hum baari-baari se **Sharpe ratio** aur **information ratio** (IR) par charcha karenge.
+The return aur risk objectives imply a trade-off: taking more risk may yield higher returns mein some circumstances, but also implies greater downside. To compare how different strategies navigate this trade-off, ratios that compute a measure ka return per unit ka risk hain very popular. hum’ll discuss the **Sharpe ratio** aur the **information ratio** (IR) mein turn.
 
-### (Adjusted) Sharpe Ratio
+### The (adjusted) Sharpe Ratio
 
-Ex-ante Sharpe Ratio (SR) portfolio ke expected excess portfolio ko is excess return ki volatility se compare karta hai, jise iske standard deviation dwara measure kiya jata hai. Ye compensation ko per unit of risk taken average excess return ke roop mein measure karta hai. Ise data se estimate kiya ja sakta hai.
+The ex-ante Sharpe Ratio (SR) compares the portfolio's expected excess portfolio to the volatility ka this excess return, measured by its standard deviation. It measures the compensation as the average excess return per unit ka risk taken. It can be estimated from data.
 
-Financial returns aksar iid assumptions ko violate karte hain. Andrew Lo ne un returns ke liye distribution aur time aggregation mein zaruri adjustments derive kiye hain jo stationary to hain lekin autocorrelated hain. Ye zaruri hai kyunki investment strategies ki time-series properties (example ke liye, mean reversion, momentum, aur serial correlation ke anya forms) ka SR estimator par hi non-trivial impact pad sakta hai, khaas taur par jab higher-frequency data se SR ko annualize kiya ja raha ho.
+Financial returns often violate the iid assumptions. Andrew Lo has derived the necessary adjustments to the distribution aur the time aggregation ke liye returns that hain stationary but autocorrelated. Yeh hai important because the time-series properties ka investment strategies (ke liye example, mean reversion, momentum, aur other forms ka serial correlation) can have a non-trivial impact on the SR estimator itself, especially when annualizing the SR from higher-frequency data.
 
-- [The Statistics of Sharpe Ratios](https://www.jstor.org/stable/4480405?seq=1#page_scan_tab_contents), Andrew Lo, Financial Analysts Journal, 2002
+- [The Statistics ka Sharpe Ratios](https://www.jstor.org/stable/4480405?seq=1#page_scan_tab_contents), Andrew Lo, Financial Analysts Journal, 2002
 
-### Active management ka fundamental law
+### The fundamental law ka active management
 
-Ye ek dilchasp tathya (fact) hai ki Renaissance Technologies (RenTec), Jim Simons dwara sthapit top-performing quant fund jiska zikra humne [Chapter 1](../01_machine_learning_for_trading) mein kiya tha, ne behad alag approaches ke bawajood Warren Buffet jaisa hi returns produce kiya hai. Warren Buffet ki investment firm Berkshire Hathaway karib 100-150 stocks ko kaafi lambe samay tak hold karti hai, jabki RenTec shayad pratidin 100,000 trades execute karti hai. Hum in alag-alag strategies ko kaise compare kar sakte hain?
+It’s a curious fact that Renaissance Technologies (RenTec), the top-performing quant fund founded by Jim Simons that hum mentioned mein [Chapter 1](../01_machine_learning_for_trading), has produced similar returns as Warren Buffet despite extremely different approaches. Warren Buffet’s investment firm Berkshire Hathaway holds some 100-150 stocks ke liye fairly long periods, whereas RenTec may execute 100,000 trades per day. How can hum compare these distinct strategies?
 
-ML objective functions ko optimize karne ke baare mein hai. Algorithmic trading mein, objectives overall investment portfolio ka return aur risk hote hain, jo aamtaur par kisi benchmark (jo cash, risk-free interest rate, ya S&P 500 jaisa asset price index ho sakta hai) ke relative hota hai.
+ML hai about optimizing objective functions. mein algorithmic trading, the objectives hain the return aur the risk ka the overall investment portfolio, typically relative to a benchmark (which may be cash, the risk-free interest rate, or an asset price index like the S&P 500).
 
-Ek high Information Ratio (IR) liye gaye additional risk ke relative attractive out-performance imply karta hai. Fundamental Law of Active Management IR ko forecasting skill ke measure ke roop mein information coefficient (IC), aur independent bets ke zariye is skill ko apply karne ki kshamta mein torta hai. Ye aksar khelne (high breadth) aur accha khelne (high IC), dono ke mahatva ko summarize karta hai.
+A high Information Ratio (IR) implies attractive out-performance relative to the additional risk taken. The Fundamental Law ka Active Management breaks the IR down into the information coefficient (IC) as a measure ka forecasting skill, aur the ability to apply this skill through independent bets. It summarizes the importance to play both often (high breadth) aur to play well (high IC).
 
-IC alpha factor aur uske signals se aane wale forward returns ke beech correlation measure karta hai aur manager ki forecasting skills ki accuracy ko capture karta hai. Strategy ki breadth ko ek given time period mein investor dwara lagaye gaye independent bets ki sankhya se measure kiya jata hai, aur dono values ka product IR ke proportional hota hai, jise appraisal risk (Treynor aur Black) bhi kaha jata hai.
+The IC measures the correlation between an alpha factor aur the forward returns resulting from its signals aur captures the accuracy ka a manager's forecasting skills. The breadth ka the strategy hai measured by the independent number ka bets an investor makes mein a given time period, aur the product ka both values hai proportional to the IR, also known as appraisal risk (Treynor aur Black).
 
-Fundamental law zaruri hai kyunki ye outperformance ke key drivers ko highlight karta hai: accurate predictions aur independent forecasts karne aur in forecasts par act karne ki kshamta, dono mayne rakhte hain. Practice mein, forecasts ke beech cross-sectional aur time-series correlation ko dekhte huye strategy ki breadth estimate karna mushkil hai.
+The fundamental law hai important because it highlights the key drivers ka outperformance: both accurate predictions aur the ability to make independent forecasts aur act on these forecasts matter. mein practice, estimating the breadth ka a strategy hai difficult given the cross-sectional aur time-series correlation among forecasts. 
 
-- [Active Portfolio Management: A Quantitative Approach for Producing Superior Returns and Controlling Risk](https://www.amazon.com/Active-Portfolio-Management-Quantitative-Controlling/dp/0070248826) by Richard Grinold and Ronald Kahn, 1999
-- [How to Use Security Analysis to Improve Portfolio Selection](https://econpapers.repec.org/article/ucpjnlbus/v_3a46_3ay_3a1973_3ai_3a1_3ap_3a66-86.htm), Jack L Treynor and Fischer Black, Journal of Business, 1973
-- [Portfolio Constraints and the Fundamental Law of Active Management](https://faculty.fuqua.duke.edu/~charvey/Teaching/BA491_2005/Transfer_coefficient.pdf), Clarke et al 2002
+- [Active Portfolio Management: A Quantitative Approach ke liye Producing Superior Returns aur Controlling Risk](https://www.amazon.com/Active-Portfolio-Management-Quantitative-Controlling/dp/0070248826) by Richard Grinold aur Ronald Kahn, 1999
+- [How to Use Security Analysis to Improve Portfolio Selection](https://econpapers.repec.org/article/ucpjnlbus/v_3a46_3ay_3a1973_3ai_3a1_3ap_3a66-86.htm), Jack L Treynor aur Fischer Black, Journal ka Business, 1973
+- [Portfolio Constraints aur the Fundamental Law ka Active Management](https://faculty.fuqua.duke.edu/~charvey/Teaching/BA491_2005/Transfer_coefficient.pdf), Clarke et al 2002
 
-## Portfolio Risk aur Return ko kaise manage karein
+## How to manage Portfolio Risk & Return
 
-Portfolio management ka maksad financial instruments mein un positions ko pick aur size karna hota hai jo kisi benchmark ke regarding desired risk-return trade-off hasil karein. Ek portfolio manager ke roop mein, har period mein, aap wo positions select karte hain jo target return hasil karte huye risks kam karne ke liye diversification ko optimize karein. Periods ke aar-paar, in positions ko target risk profile hasil karne ya banaye rakhne ke liye price movements se hone wale weights mein badlav ko account karne ke liye rebalancing ki zarurat ho sakti hai.
+Portfolio management aims to pick aur size positions mein financial instruments that achieve the desired risk-return trade-off regarding a benchmark. As a portfolio manager, mein each period, you select positions that optimize diversification to reduce risks while achieving a target return. Across periods, these positions may require rebalancing to account ke liye changes mein weights resulting from price movements to achieve or maintain a target risk profile.
 
-### Modern portfolio management ka evolution
+### The evolution ka modern portfolio management
 
-Diversification humein ye exploit karke given expected return ke liye risks kam karne ki suvidha deta hai ki kaise imperfect correlation ek asset ke gains ko dusre asset ke losses ki bharpayi karne deta hai. Harry Markowitz ne 1952 mein modern portfolio theory (MPT) ka aavishkar kiya aur appropriate portfolio weights chunkar diversification ko optimize karne ke liye mathematical tools pradan kiye.
+Diversification permits us to reduce risks ke liye a given expected return by exploiting how imperfect correlation allows ke liye one asset's gains to make up ke liye another asset's losses. Harry Markowitz invented modern portfolio theory (MPT) mein 1952 aur provided the mathematical tools to optimize diversification by choosing appropriate portfolio weights.
  
 ### Mean-variance optimization
 
-Modern portfolio theory given expected return ke liye volatility minimize karne, ya given level of volatility ke liye returns maximize karne ke liye optimal portfolio weights solve karti hai. Key requisite inputs expected asset returns, standard deviations, aur covariance matrix hain.
+Modern portfolio theory solves ke liye the optimal portfolio weights to minimize volatility ke liye a given expected return, or maximize returns ke liye a given level ka volatility. The key requisite inputs hain expected asset returns, standard deviations, aur the covariance matrix. 
+- [Portfolio Selection](https://www.math.ust.hk/~maykwok/courses/ma362/07F/markowitz_JF.pdf), Harry Markowitz, The Journal ka Finance, 1952
+- [The Capital Asset Pricing Model: Theory aur Evidence](http://mba.tuck.dartmouth.edu/bespeneckbo/default/AFA611-Eckbo%20web%20site/AFA611-S6B-FamaFrench-CAPM-JEP04.pdf), Eugene F. Fama aur Kenneth R. French, Journal ka Economic Perspectives, 2004
 
-- [Portfolio Selection](https://www.math.ust.hk/~maykwok/courses/ma362/07F/markowitz_JF.pdf), Harry Markowitz, The Journal of Finance, 1952
-- [The Capital Asset Pricing Model: Theory and Evidence](http://mba.tuck.dartmouth.edu/bespeneckbo/default/AFA611-Eckbo%20web%20site/AFA611-S6B-FamaFrench-CAPM-JEP04.pdf), Eugene F. Fama and Kenneth R. French, Journal of Economic Perspectives, 2004
+#### Code Examples: Finding the efficient frontier mein Python
 
-#### Code Examples: Python mein efficient frontier dhundhna
+hum can calculate an efficient frontier use karke scipy.optimize.minimize aur the historical estimates ke liye asset returns, standard deviations, aur the covariance matrix. 
+- Notebook [mean_variance_optimization](04_mean_variance_optimization.ipynb) to compute the efficient frontier mein python.
 
-Hum scipy.optimize.minimize aur asset returns, standard deviations, aur covariance matrix ke liye historical estimates ka use karke ek efficient frontier calculate kar sakte hain.
-- Python mein efficient frontier compute karne ke liye notebook [mean_variance_optimization](04_mean_variance_optimization.ipynb) dekhein.
+### Alternatives to mean-variance optimization
 
-### Mean-variance optimization ke vikalp (Alternatives)
+The challenges ke saath accurate inputs ke liye the mean-variance optimization problem have led to the adoption ka several practical alternatives that constrain the mean, the variance, or both, or omit return estimates that hain more challenging, such as the risk parity approach that hum discuss later mein this section.
 
-Mean-variance optimization problem ke liye accurate inputs ke saath challenges ne kai practical alternatives ko apnane ko badhava diya hai jo mean, variance, ya dono ko constrain karte hain, ya return estimates ko omit kar dete hain jo zyada challenging hote hain, jaise risk parity approach jis par hum is section mein baad mein charcha karenge.
+#### The 1/N portfolio
 
-#### 1/N portfolio
+Simple portfolios provide useful benchmarks to gauge the added value ka complex models that generate the risk ka overfitting. The simplest strategy—an equally-weighted portfolio—has been shown to be one ka the best performers.
 
-Simple portfolios complex models ke added value ko mapne (gauge) ke liye useful benchmarks pradan karte hain jo overfitting ka risk generate karte hain. Sabse simple strategy—ek equally-weighted portfolio—ko best performers mein se ek dikhaya gaya hai.
+#### The minimum-variance portfolio
 
-#### Minimum-variance portfolio
+Another alternative hai the global minimum-variance (GMV) portfolio, which prioritizes the minimization ka risk. It hai shown mein the efficient frontier figure aur can be calculated as follows by minimizing the portfolio standard deviation use karke the mean-variance framework.
 
-Ek aur alternative global minimum-variance (GMV) portfolio hai, jo risk ke minimization ko prathmikta deta hai. Ise efficient frontier figure mein dikhaya gaya hai aur mean-variance framework ka use karke portfolio standard deviation ko minimize karke ise calculate kiya ja sakta hai.
+#### The Black-Litterman approach
 
-#### Black-Litterman approach
-
-Black aur Litterman (1992) ka Global Portfolio Optimization approach economic models ko statistical learning ke saath combine karta hai aur popular hai kyunki ye expected returns ke estimates generate karta hai jo kai situations mein plausible (tark-sangt) hote hain.
-Ye technique maanti hai ki market ek mean-variance portfolio hai jaisa ki CAPM equilibrium model dwara imply kiya gaya hai. Ye is tathya par banta hai ki observed market capitalization ko market dwara har security ko assign kiye gaye optimal weights ke roop mein mana ja sakta hai. Market weights market prices ko reflect karte hain jo, badle mein, future returns ki market expectations ko embody karte hain.
+The Global Portfolio Optimization approach ka Black aur Litterman (1992) combines economic models ke saath statistical learning aur hai popular because it generates estimates ka expected returns that hain plausible mein many situations.
+The technique assumes that the market hai a mean-variance portfolio as implied by the CAPM equilibrium model. It builds on the fact that the observed market capitalization can be considered as optimal weights assigned to each security by the market. Market weights reflect market prices that, mein turn, embody the market’s expectations ka future returns.
 
 - [Global Portfolio Optimization](http://www.sef.hku.hk/tpg/econ6017/2011/black-litterman-1992.pdf), Black, Fischer; Litterman, Robert
 Financial Analysts Journal, 1992
 
-#### Apne bets ka size kaise tay karein – Kelly rule
+#### How to size your bets – the Kelly rule
 
-Kelly rule ka gambling mein lamba itihas hai kyunki ye guidance deta hai ki terminal wealth ko maximize karne ke liye bets ke ek (infinite) sequence par varying (lekin favorable) odds ke saath kitna daanv (stake) lagana hai. Ise 1956 mein John Kelly dwara A New Interpretation of the Information Rate ke roop mein publish kiya gaya tha jo Bell Labs mein Claude Shannon ke colleague the. Wo naye quiz show The $64,000 Question mein candidates par lagaye gaye bets se intrigued the, jahan west coast par ek viewer ne winners ke baare mein insider information prapt karne ke liye teen ghante ki deri (delay) ka use kiya.
+The Kelly rule has a long history mein gambling because it provide karta hai guidance on how much to stake on each ka an (infinite) sequence ka bets ke saath varying (but favorable) odds to maximize terminal wealth. It was published as A New Interpretation ka the Information Rate mein 1956 by John Kelly who was a colleague ka Claude Shannon's at Bell Labs. He was intrigued by bets placed on candidates at the new quiz show The $64,000 Question, where a viewer on the west coast used the three-hour delay to obtain insider information about the winners. 
 
-Kelly ne Shannon ki information theory se connection joda taaki us bet ko solve kiya ja sake jo long-term capital growth ke liye optimal hai jab odds favorable hon, lekin uncertainty bani rahe. Unka rule har game ki success ke odds ke function ke roop mein logarithmic wealth ko maximize karta hai, aur isme implicit bankruptcy protection shamil hai kyunki log(0) negative infinity hai taaki ek Kelly gambler naturally sab kuch khone se bachega.
+Kelly drew a connection to Shannon's information theory to solve ke liye the bet that hai optimal ke liye long-term capital growth when the odds hain favorable, but uncertainty remains. His rule maximizes logarithmic wealth as a function ka the odds ka success ka each game, aur includes implicit bankruptcy protection since log(0) hai negative infinity so that a Kelly gambler would naturally avoid losing everything.
 
-- [A New Interpretation of Information Rate](https://www.princeton.edu/~wbialek/rome/refs/kelly_56.pdf), John Kelly, 1956
+- [A New Interpretation ka Information Rate](https://www.princeton.edu/~wbialek/rome/refs/kelly_56.pdf), John Kelly, 1956
+- [Beat the Dealer: A Winning Strategy ke liye the Game ka Twenty-One](https://www.amazon.com/Beat-Dealer-Winning-Strategy-Twenty-One/dp/0394703103), Edward O. Thorp,1966
+- [Beat the Market: A Scientific Stock Market System](https://www.researchgate.net/publication/275756748_Beat_the_Market_A_Scientific_Stock_Market_System) , Edward O. Thorp,1967
+- [Quantitative Trading: How to Build Your Own Algorithmic Trading Business](https://www.amazon.com/Quantitative-Trading-Build-Algorithmic-Business/dp/0470284889/ref=sr_1_2?s=books&ie=UTF8&qid=1545525861&sr=1-2), Ernie Chan, 2008
 
-#### Python ke saath MV Optimization ke vikalp
+#### Alternatives to MV Optimization ke saath Python
 
-- Notebook [kelly_rule](05_kelly_rule.ipynb) single aur multiple asset case ke liye application demonstrate karta hai.
-- Baad wala result notebook [mean_variance_optimization](04_mean_variance_optimization.ipynb) mein bhi shamil hai, kai anya alternative approaches ke saath.
+- Notebook [kelly_rule](05_kelly_rule.ipynb) demonstrate karta hai the application ke liye the single aur multiple asset case. 
+- The latter result hai also included mein the notebook [mean_variance_optimization](04_mean_variance_optimization.ipynb), along ke saath several other alternative approaches.
 
 ### Hierarchical Risk Parity
 
-[Marcos Lopez de Prado](http://www.quantresearch.org/) dwara develop kiya gaya ye novel approach aamtaur par quadratic optimizers, aur khaas taur par Markowitz ke critical line algorithm (CLA) ki teen badi chintaon ko address karne ka maksad rakhta hai:
-- instability (asthirta),
-- concentration (ekagrata), aur
-- underperformance.
+Yeh novel approach developed by [Marcos Lopez de Prado](http://www.quantresearch.org/) aims to address three major concerns ka quadratic optimizers, mein general, aur Markowitz’s critical line algorithm (CLA), mein particular: 
+- instability, 
+- concentration, aur 
+- underperformance. 
 
-Hierarchical Risk Parity (HRP) covariance matrix mein contained information ke aadhar par diversified portfolio banane ke liye graph theory aur machine-learning apply karta hai. Halaanki, quadratic optimizers ke vipreet, HRP ko covariance matrix ki invertibility ki zarurat nahi hoti. Vastav mein, HRP ill-degenerated ya singular covariance matrix par bhi portfolio compute kar sakta hai—jo quadratic optimizers ke liye namumkin kaam hai. Monte Carlo experiments dikhate hain ki HRP CLA se kam out-of-sample variance deliver karta hai, bhale hi minimum variance CLA ka optimization objective ho. HRP traditional risk parity methods ke mukable out of sample less risky portfolios bhi produce karta hai. Hum HRP par [Chapter 13](../13_unsupervised_learning) mein zyada vistar se charcha karenge jab hum trading ke liye unsupervised learning (hierarchical clustering sahit) ke applications par charcha karenge.
+Hierarchical Risk Parity (HRP) applies graph theory aur machine-learning to build a diversified portfolio based on the information contained mein the covariance matrix. However, unlike quadratic optimizers, HRP does not require the invertibility ka the covariance matrix. mein fact, HRP can compute a portfolio on an ill-degenerated or even a singular covariance matrix—an impossible feat ke liye quadratic optimizers. Monte Carlo experiments show that HRP delivers lower out-ka-sample variance than CLA, even though minimum variance hai CLA’s optimization objective. HRP also produces less risky portfolios out ka sample compared to traditional risk parity methods. hum will discuss HRP mein more detail mein [Chapter 13](../13_unsupervised_learning) when hum discuss applications ka unsupervised learning, including hierarchical clustering, to trading.
 
-- [Building diversified portfolios that outperform out of sample](https://jpm.pm-research.com/content/42/4/59.short), Marcos López de Prado, The Journal of Portfolio Management 42, no. 4 (2016): 59-69.
+- [Building diversified portfolios that outperform out ka sample](https://jpm.pm-research.com/content/42/4/59.short), Marcos López de Prado, The Journal ka Portfolio Management 42, no. 4 (2016): 59-69.
 - [Hierarchical Clustering Based Asset Allocation](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2840729), Thomas Raffinot, 2016
 
-Hum demonstrate karte hain ki HRP ko kaise implement karein aur ise Chapter 13 mein [Unsupervised Learning](../13_unsupervised_learning) mein alternatives se compare karte hain jahan hum hierarchical clustering bhi introduce karte hain.
+hum demonstrate how to implement HRP aur compare it to alternatives mein Chapter 13 on [Unsupervised Learning](../13_unsupervised_learning) where hum also introduce hierarchical clustering.
 
-## `Zipline` ke saath portfolio ki Trading aur managing
+## Trading aur managing a portfolio ke saath `Zipline`
 
-Open source [zipline](https://zipline.ml4trading.io/index.html) library ek event-driven backtesting system hai jise crowd-sourced quantitative investment fund [Quantopian](https://www.quantopian.com/) dwara maintain aur production mein use kiya jata hai taaki algorithm-development aur live-trading aasan ho sake. Ye trade events par algorithm ke reaction ko automate karta hai aur ise current aur historical point-in-time data deta hai jo look-ahead bias se bachaata hai. [Chapter 8 - The ML4T Workflow](../08_strategy_workflow) mein `zipline` aur `backtrader` dono ka use karke backtesting ka zyada detailed, dedicated parichay hai.
+The open source [zipline](https://zipline.ml4trading.io/index.html) library hai an event-driven backtesting system maintained aur used mein production by the crowd-sourced quantitative investment fund [Quantopian](https://www.quantopian.com/) to facilitate algorithm-development aur live-trading. It automates the algorithm's reaction to trade events aur provide karta hai it ke saath current aur historical point-mein-time data that avoids look-ahead bias. [Chapter 8 - The ML4T Workflow](../08_strategy_workflow) has a more detailed, dedicated introduction to backtesting use karke both `zipline` aur `backtrader`. 
 
-[Chapter 4](../04_alpha_factor_research) mein, humne trailing cross-sectional market, fundamental, aur alternative data se alpha factors ke computation ko simulate karne ke liye `zipline` introduce kiya tha. Ab hum buy aur sell signals derive karne aur un par act karne ke liye alpha factors ka labh uthayenge.
+mein [Chapter 4](../04_alpha_factor_research), hum introduced `zipline` to simulate the computation ka alpha factors from trailing cross-sectional market, fundamental, aur alternative data. Now hum will exploit the alpha factors to derive aur act on buy aur sell signals. 
 
-### Code Examples: Trades aur portfolio optimization ke saath Backtests
+### Code Examples: Backtests ke saath trades aur portfolio optimization 
 
-Is section ke liye code nimnlikhit do notebooks mein rehta hai:
-- Is section ke notebooks `conda` environment `backtest` use karte hain. Latest Docker image download karne ya apna environment set karne ke alternative tarikon ke liye kripya installation [instructions](../installation/README.md) dekhein.
-- Notebook [backtest_with_trades](01_backtest_with_trades.ipynb) un trading decisions ko simulate karta hai jo Zipline ka use karke pichle chapter se simple MeanReversion alpha factor par based portfolio banate hain. Hum portfolio weights ko explicitly optimize nahi karte hain aur bas har holding ko equal value ki positions assign karte hain.
-- Notebook [backtest_with_pf_optimization](02_backtest_with_pf_optimization.ipynb) demonstrate karta hai ki simple strategy backtest ke hisse ke roop mein PF optimization ka use kaise karein.
+The code ke liye this section lives mein the following two notebooks: 
+- Notebooks mein this section use the `conda` environment `backtest`. Please see the installation [instructions](../installation/README.md) ke liye downloading the latest Docker image or alternative ways to set up your environment.
+- Notebook [backtest_with_trades](01_backtest_with_trades.ipynb) simulates the trading decisions that build a portfolio based on the simple MeanReversion alpha factor from the last chapter use karke Zipline. hum not explicitly optimize the portfolio weights aur just assign positions ka equal value to each holding.
+- Notebook [backtest_with_pf_optimization](02_backtest_with_pf_optimization.ipynb) demonstrate karta hai how to use PF optimization as part ka a simple strategy backtest. 
 
-## `pyfolio` ke saath backtest performance measure karein
+## Measure backtest performance ke saath `pyfolio`
 
-Pyfolio kai standard metrics ka use karke in-sample aur out-of-sample portfolio performance aur risk ke analysis ko aasan banata hai. Ye returns, positions, aur transactions ke analysis ko cover karne wale tear sheets produce karta hai, saath hi kai built-in scenarios ka use karke market stress ke periods ke dauran event risk, aur isme Bayesian out-of-sample performance analysis bhi shamil hai.
+Pyfolio facilitates the analysis ka portfolio performance aur risk mein-sample aur out-ka-sample use karke many standard metrics. It produces tear sheets covering the analysis ka returns, positions, aur transactions, as well as event risk during periods ka market stress use karke several built-mein scenarios, aur also includes Bayesian out-ka-sample performance analysis.
 
-### Code Example: `Zipline` backtest se `pyfolio` evaluation
+### Code Example: `pyfolio` evaluation from a `Zipline` backtest
 
-Notebook [pyfolio_demo](03_pyfolio_demo.ipynb) illustrate karta hai ki pichle folder mein conduct kiye gaye backtest se `pyfolio` input kaise extract karein. Phir ye `pyfolio` ka use karke kai performance metrics aur tear sheets calculate karne ki taraf badhta hai.
+Notebook [pyfolio_demo](03_pyfolio_demo.ipynb) illustrates how to extract the `pyfolio` input from the backtest conducted mein the previous folder. It then proceeds to calculate several performance metrics aur tear sheets use karke `pyfolio`
 
-- Is notebook ke liye `conda` environment `backtest` ki zarurat hai. Latest Docker image chalane ya apna environment set karne ke alternative tarikon ke liye kripya [installation instructions](../installation/README.md) dekhein.
+- This notebook requires the `conda` environment `backtest`. Please see the [installation instructions](../installation/README.md) ke liye running the latest Docker image or alternative ways to set up your environment.

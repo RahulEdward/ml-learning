@@ -1,203 +1,245 @@
-# अस्थिरता पूर्वानुमान से सांख्यिकीय आर्बिट्राज तक: रैखिक समय श्रृंखला मॉडल (From Volatility Forecasts to Statistical Arbitrage: Linear Time Series Models)
+# From Volatility Forecasts to Statistical Arbitrage: Linear Time Series Models
 
-इस अध्याय में, हम समय को स्पष्ट रूप से दर्शाने के लिए गतिशील रैखिक मॉडल (dynamic linear models) बनाएंगे और विशिष्ट अंतराल या अंतराल (lags) पर देखे गए चर (variables) शामिल करेंगे। समय-श्रृंखला (time-series) डेटा की एक प्रमुख विशेषता उनका अनुक्रमिक क्रम है: क्रॉस-सेक्शनल डेटा के मामले में व्यक्तिगत टिप्पणियों के यादृच्छिक नमूने के बजाय, हमारा डेटा एक स्टोकेस्टिक प्रक्रिया का एकल अहसास है जिसे हम दोहरा नहीं सकते हैं।
+mein this chapter, hum will build dynamic linear models to explicitly represent time aur include variables observed at specific intervals or lags. A key characteristic ka time-series data hai their sequential order: rather than random samples ka individual observations as mein the case ka cross-sectional data, our data hain a single realization ka a stochastic process that hum cannot repeat.
 
-हमारा लक्ष्य **समय श्रृंखला में व्यवस्थित पैटर्न** की पहचान करना है जो हमें यह अनुमान लगाने में मदद करते हैं कि भविष्य में समय श्रृंखला कैसे व्यवहार करेगी। अधिक विशेष रूप से, हम उन मॉडलों पर ध्यान केंद्रित करते हैं जो आउटपुट के ऐतिहासिक अनुक्रम और, वैकल्पिक रूप से, अन्य समकालीन या पिछड़े हुए इनपुट चरों से सिग्नल निकालते हैं ताकि आउटपुट के भविष्य के मूल्यों की भविष्यवाणी की जा सके। उदाहरण के लिए, हम पिछले रिटर्न का उपयोग करके स्टॉक के लिए भविष्य के रिटर्न की भविष्यवाणी करने की कोशिश कर सकते हैं, जिसे बेंचमार्क या व्यापक आर्थिक चर के ऐतिहासिक रिटर्न के साथ जोड़ा जा सकता है। हम भाग 4 में आवर्तक (recurrent) या कन्वेन्शनल (convolutional) न्यूरल नेटवर्क जैसे गैर-रेखीय मॉडलों की ओर मुड़ने से पहले रैखिक समय-श्रृंखला मॉडलों पर ध्यान केंद्रित करते हैं।
+Our goal hai to identify **systematic patterns mein time series** that help us predict how the time series will behave mein the future. More specifically, hum focus on models that extract signals from a historical sequence ka the output aur, optionally, other contemporaneous or lagged input variables to predict future values ka the output. Udaharan ke liye, hum might try to predict future returns ke liye a stock use karke past returns, combined ke saath historical returns ka a benchmark or macroeconomic variables. hum focus on linear time-series models before turning to nonlinear models like recurrent or convolutional neural networks mein Part 4. 
 
-ट्रेडिंग के लिए अंतर्निहित समय आयाम को देखते हुए समय-श्रृंखला मॉडल बहुत लोकप्रिय हैं। प्रमुख अनुप्रयोगों में **परिसंपत्ति रिटर्न और अस्थिरता की भविष्यवाणी**, साथ ही परिसंपत्ति मूल्य श्रृंखला के सह-आंदोलनों (co-movements) की पहचान शामिल है। समय-श्रृंखला डेटा के अधिक प्रचलित होने की संभावना है क्योंकि जुड़े उपकरणों की एक विस्तृत श्रृंखला संभावित सिग्नल सामग्री के साथ नियमित माप एकत्र करती है।
+Time-series models hain very popular given the time dimension inherent to trading. Key applications include the **prediction ka asset returns aur volatility**, as well as the identification ka co-movements ka asset price series. Time-series data hain likely to become more prevalent as an ever-broader array ka connected devices collects regular measurements ke saath potential signal content.
 
-हम पहले समय-श्रृंखला विशेषताओं का निदान करने और संभावित पैटर्न को कैप्चर करने वाली विशेषताओं को निकालने के लिए उपकरण पेश करते हैं। फिर हम यूनीवेरिएयट (univariate) और मल्टीवेरिएयट (multivariate) समय-श्रृंखला मॉडल पेश करते हैं और उन्हें मैक्रो डेटा और अस्थिरता पैटर्न का पूर्वानुमान लगाने के लिए लागू करते हैं। हम **सह-एकीकरण (cointegration)** की अवधारणा के साथ निष्कर्ष निकालते हैं और **पेयर्स ट्रेडिंग रणनीति** विकसित करने के लिए इसे कैसे लागू किया जाए, यह बताते हैं।
+hum first introduce tools to diagnose time-series characteristics aur to extract features that capture potential patterns. Then hum introduce univariate aur multivariate time-series models aur apply them to forecast macro data aur volatility patterns. hum conclude ke saath the concept ka **cointegration** aur how to apply it to develop a **pairs trading strategy**.
 
-## विषय-सूची (Content)
+## Vishay-suchi (Content)
 
-1. [निदान और विशेषता निष्कर्षण के लिए उपकरण](#tools-for-diagnostics-and-feature-extraction)
-    * [समय श्रृंखला पैटर्न को कैसे विघटित (decompose) करें](#how-to-decompose-time-series-patterns)
-    * [रोलिंग विंडो आँकड़े और मूविंग एवरेज](#rolling-window-statistics-and-moving-averages)
-    * [ऑटो-कोरिलेशन (autocorrelation) को कैसे मापें](#how-to-measure-autocorrelation)
-    * [स्टेशनरिटी (stationarity) का निदान और उसे कैसे प्राप्त करें](#how-to-diagnose-and-achieve-stationarity)
-    * [समय श्रृंखला परिवर्तनों (transformations) को कैसे लागू करें](#how-to-apply-time-series-transformations)
-    * [यूनिट रूट (unit roots) का निदान और समाधान कैसे करें](#how-to-diagnose-and-address-unit-roots)
-    * [कोड उदाहरण: समय श्रृंखला डेटा के साथ काम करना](#code-example-working-with-time-series-data)
-    * [संसाधन](#resources)
-2. [यूनीवेरिएयट समय श्रृंखला मॉडल (Univariate Time Series Models)](#univariate-time-series-models)
-    * [ऑटोरेग्र्रेसिव (autoregressive) मॉडल कैसे बनाएं](#how-to-build-autoregressive-models)
-    * [मूविंग एवरेज मॉडल कैसे बनाएं](#how-to-build-moving-average-models)
-    * [ARIMA मॉडल और विस्तार कैसे बनाएं](#how-to-build-arima-models-and-extensions)
-    * [कोड उदाहरण: ARIMA और SARIMAX मॉडल के साथ मैक्रो फंडामेंटल्स का पूर्वानुमान](#code-example-forecasting-macro-fundamentals-with-arima-and-sarimax-models)
-    * [अस्थिरता का पूर्वानुमान लगाने के लिए समय श्रृंखला मॉडल का उपयोग कैसे करें](#how-to-use-time-series-models-to-forecast-volatility)
-    * [अस्थिरता-पूर्वानुमान मॉडल कैसे बनाएं](#how-to-build-a-volatility-forecasting-model)
-    * [कोड उदाहरण: अस्थिरता पूर्वानुमान](#code-examples-volatility-forecasts)
-    * [संसाधन](#resources-2)
-3. [मल्टीवेरिएयट समय श्रृंखला मॉडल (Multivariate Time Series Models)](#multivariate-time-series-models)
-    * [वेक्टर ऑटोरेग्र्रेसिव (VAR) मॉडल](#the-vector-autoregressive-var-model)
-    * [कोड उदाहरण: मैक्रो फंडामेंटल्स पूर्वानुमान के लिए VAR मॉडल का उपयोग कैसे करें](#code-example-how-to-use-the-var-model-for-macro-fundamentals-forecasts)
-    * [संसाधन](#resources-3)
-4. [सह-एकीकरण (Cointegration) – एक सामान्य प्रवृत्ति वाली समय श्रृंखला](#cointegration--time-series-with-a-common-trend)
-    * [पेयर्स ट्रेडिंग: सह-एकीकरण के साथ सांख्यिकीय आर्बिट्राज](#pairs-trading-statistical-arbitrage-with-cointegration)
-    * [सह-चलने वाली संपत्तियों के चयन और व्यापार के लिए वैकल्पिक दृष्टिकोण](#alternative-approaches-to-selecting-and-trading-comoving-assets)
-    * [कोड उदाहरण: व्यवहार में पेयर्स ट्रेडिंग](#code-example-pairs-trading-in-practice)
-        - [सह-एकीकृत जोड़े की पहचान करने के लिए दूरी-आधारित ह्यूरिस्टिक्स की गणना](#computing-distance-based-heuristics-to-identify-cointegrated-pairs)
-        - [सह-एकीकरण परीक्षणों की पूर्व-गणना (Precomputing)](#precomputing-the-cointegration-tests)
-    * [संसाधन](#resources-4)
+1. [Tools ke liye diagnostics aur feature extraction](#tools-ke liye-diagnostics-aur-feature-extraction)
+    * [How to decompose time series patterns](#how-to-decompose-time-series-patterns)
+    * [Rolling window statistics and moving averages](#rolling-window-statistics-and-moving-averages)
+    * [How to measure autocorrelation](#how-to-measure-autocorrelation)
+    * [How to diagnose and achieve stationarity](#how-to-diagnose-and-achieve-stationarity)
+    * [How to apply time series transformations](#how-to-apply-time-series-transformations)
+    * [How to diagnose and address unit roots](#how-to-diagnose-and-address-unit-roots)
+    * [Code example: working with time series data](#code-example-working-with-time-series-data)
+    * [Resources](#resources)
+2. [Univariate Time Series Models](#univariate-time-series-models)
+    * [How to build autoregressive models](#how-to-build-autoregressive-models)
+    * [How to build moving average models](#how-to-build-moving-average-models)
+    * [How to build ARIMA models and extensions](#how-to-build-arima-models-and-extensions)
+    * [Code example: forecasting macro fundamentals with ARIMA and SARIMAX models](#code-example-forecasting-macro-fundamentals-with-arima-and-sarimax-models)
+    * [How to use time series models to forecast volatility](#how-to-use-time-series-models-to-forecast-volatility)
+    * [How to build a volatility-forecasting model](#how-to-build-a-volatility-forecasting-model)
+    * [Code examples: volatility forecasts](#code-examples-volatility-forecasts)
+    * [Resources](#resources-2)
+3. [Multivariate Time Series Models](#multivariate-time-series-models)
+    * [The vector autoregressive (VAR) model](#the-vector-autoregressive-var-model)
+    * [Code example: How to use the VAR model for macro fundamentals forecasts](#code-example-how-to-use-the-var-model-for-macro-fundamentals-forecasts)
+    * [Resources](#resources-3)
+4. [Cointegration – time series ke saath a common trend](#cointegration--time-series-ke saath-a-common-trend)
+    * [Pairs trading: Statistical arbitrage with cointegration](#pairs-trading-statistical-arbitrage-with-cointegration)
+    * [Alternative approaches to selecting and trading comoving assets](#alternative-approaches-to-selecting-and-trading-comoving-assets)
+    * [Code example: Pairs trading in practice](#code-example-pairs-trading-in-practice)
+        - [Computing distance-based heuristics to identify cointegrated pairs](#computing-distance-based-heuristics-to-identify-cointegrated-pairs)
+        - [Precomputing the cointegration tests](#precomputing-the-cointegration-tests)
+    * [Resources](#resources-4)
 
-## निदान और विशेषता निष्कर्षण के लिए उपकरण (Tools for diagnostics and feature extraction)
+## Tools ke liye diagnostics aur feature extraction
 
-इस खंड के अधिकांश उदाहरण फेडरल रिजर्व द्वारा प्रदान किए गए डेटा का उपयोग करते हैं जिसे आप `pandas datareader` का उपयोग करके एक्सेस कर सकते हैं जिसे हमने [अध्याय 2, बाजार और मौलिक डेटा](../02_market_and_fundamental_data) में पेश किया था।
+Most ka the examples mein this section use data provided by the Federal Reserve that you can access use karke the pandas datareader that hum introduced mein [Chapter 2, Market aur Fundamental Data](../02_market_and_fundamental_data). 
 
-### समय श्रृंखला पैटर्न को कैसे विघटित करें
-समय श्रृंखला डेटा में आमतौर पर विभिन्न पैटर्नों का मिश्रण होता है जिन्हें कई घटकों में विघटित किया जा सकता है, जिनमें से प्रत्येक एक अंतर्निहित पैटर्न श्रेणी का प्रतिनिधित्व करता है। विशेष रूप से, समय श्रृंखला में अक्सर व्यवस्थित घटक ट्रेंड, सीजनलिटी और साइकिल, और अनसिस्टमैटिक शोर (noise) शामिल होते हैं। इन घटकों को एक योगात्मक (additive), रैखिक मॉडल में जोड़ा जा सकता है, विशेष रूप से तब जब उतार-चढ़ाव श्रृंखला के स्तर पर निर्भर नहीं करते हैं, या एक गैर-रेखीय, गुणक (multiplicative) मॉडल में।
+### How to decompose time series patterns
 
-- `pandas` Time Series and Date functionality [docs](https://pandas.pydata.org/pandas-docs/stable/timeseries.html)
-- [Forecasting - Principles & Practice, Hyndman, R. and Athanasopoulos, G., ch.6 'Time Series Decomposition'](https://otexts.org/fpp2/decomposition.html)
+Time series data typically contain karta hai a mix ka various patterns that can be decomposed into several components, each representing an underlying pattern category. mein particular, time series often consist ka the systematic components trend, seasonality aur cycles, aur unsystematic noise. These components can be combined mein an additive, linear model, mein particular when fluctuations do not depend on the level ka the series, or mein a non-linear, multiplicative model. 
 
-### रोलिंग विंडो आँकड़े और मूविंग एवरेज
-पेंडस (pandas) लाइब्रेरी में विभिन्न विंडो प्रकारों को परिभाषित करने के लिए बहुत लचीली कार्यष्मता शामिल है, जिसमें रोलिंग, एक्सपोनेंशियल वेटेड और एक्सपैंडिंग विंडो शामिल हैं।
+- `pandas` Time Series aur Date functionality [docs](https://pandas.pydata.org/pandas-docs/stable/timeseries.html)
+- [Forecasting - Principles & Practice, Hyndman, R. aur Athanasopoulos, G., ch.6 'Time Series Decomposition'](https://otexts.org/fpp2/decomposition.html)
+
+### Rolling window statistics aur moving averages
+
+The pandas library includes very flexible functionality to define various window types, including rolling, exponentially weighted aur expanding windows.
 
 - `pandas` window function [docs](https://pandas.pydata.org/pandas-docs/stable/computation.html#window-functions)
 
-### ऑटो-कोरिलेशन को कैसे मापें
-ऑटो-कोरिलेशन (जिसे सीरियल कोरिलेशन भी कहा जाता है) कोरिलेशन की अवधारणा को समय श्रृंखला संदर्भ में अनुकूलित करता है: जैसे कोरिलेशन गुणांक दो चरों के बीच रैखिक संबंध की ताकत को मापता है, वैसे ही ऑटो-कोरिलेशन गुणांक एक दिए गए अंतराल (lag) द्वारा अलग किए गए समय श्रृंखला मूल्यों के बीच रैखिक संबंध की सीमा को मापता है।
+### How to measure autocorrelation
 
-हम ऑटो-कोरिलेशन को मापने के लिए निम्नलिखित उपकरण प्रस्तुत करते हैं:
-- ऑटो-कोरिलेशन फंक्शन (ACF)
-- पार्शियल ऑटो-कोरिलेशन फंक्शन (PACF)
-- कोर्रेलोग्राम (correlogram) lags की संख्या के खिलाफ ACF या PACF के प्लॉट के रूप में।
+Autocorrelation (also called serial correlation) adapts the concept ka correlation to the time series context: just as the correlation coefficient measures the strength ka a linear relationship between two variables, the autocorrelation coefficient measures the extent ka a linear relationship between time series values separated by a given lag.
 
-### स्टेशनरिटी का निदान और उसे कैसे प्राप्त करें
-एक स्थिर (stationary) समय श्रृंखला के सांख्यिकीय गुण, जैसे कि माध्य (mean), विचरण (variance), या ऑटो-कोरिलेशन, अवधि से स्वतंत्र होते हैं, अर्थात, वे समय के साथ नहीं बदलते हैं। इसलिए, स्टेशनरिटी का तात्पर्य है कि एक समय श्रृंखला में कोई ट्रेंड या मौसमी प्रभाव नहीं है और वर्णनात्मक आँकड़े, जैसे कि माध्य या मानक विचलन, जब विभिन्न रोलिंग विंडो के लिए गणना की जाती है, तो वे स्थिर रहते हैं या समय के साथ बहुत अधिक नहीं बदलते हैं।
+hum present the following tools to measure autocorrelation:
+- autocorrelation function (ACF)
+- partial autocorrelation function (PACF)
+- correlogram as a plot ka ACF or PACF against the number ka lags.
 
-### समय श्रृंखला परिवर्तनों (transformations) को कैसे लागू करें
-रैखिक समय श्रृंखला मॉडलों की स्टेशनरिटी धारणा को संतुष्ट करने के लिए, हमें मूल समय श्रृंखला को बदलने की आवश्यकता है, अक्सर कई चरणों में। सामान्य परिवर्तनों में घातीय वृद्धि (exponential growth) पैटर्न को रैखिक ट्रेंड में बदलने और विचरण को स्थिर करने के लिए (प्राकृतिक) लघुगणक (logarithm) का अनुप्रयोग, या डिफरेंसिंग (differencing) शामिल है।
+### How to diagnose aur achieve stationarity
 
-### यूनिट रूट का निदान और समाधान कैसे करें
-यूनिट रूट उस परिवर्तन को निर्धारित करने के लिए एक विशेष समस्या पैदा करते हैं जो समय श्रृंखला को स्थिर बना देगा। व्यवहार में, ब्याज दरों या परिसंपत्ति मूल्यों की समय श्रृंखला अक्सर स्थिर नहीं होती है, उदाहरण के लिए, क्योंकि ऐसा कोई मूल्य स्तर मौजूद नहीं होता है जिस पर श्रृंखला वापस लौटती है। गैर-स्थिर श्रृंखला का सबसे प्रमुख उदाहरण रैंडम वॉक (random walk) है।
+The statistical properties, such as the mean, variance, or autocorrelation, ka a stationary time series hain independent ka the period, that hai, they don't change over time. Hence, stationarity implies that a time series does not have a trend or seasonal effects aur that descriptive statistics, such as the mean or the standard deviation, when computed ke liye different rolling windows, hain constant or do not change much over time.
 
-यूनिट-रूट गैर-स्थिर श्रृंखला की परिभाषित विशेषता लंबी मेमोरी है: चूंकि वर्तमान मूल्य पिछले व्यवधानों का योग हैं, इसलिए बड़े नवाचार (innovations) माध्य-प्रत्यावर्तन (mean-reverting), स्थिर श्रृंखला की तुलना में बहुत अधिक समय तक बने रहते हैं। सही परिवर्तन की पहचान करना, और विशेष रूप से, डिफरेंसिंग के लिए उचित संख्या और अंतराल (lags) हमेशा स्पष्ट नहीं होते हैं। हम इस प्रक्रिया का मार्गदर्शन करने के लिए कुछ ह्यूरिस्टिक्स प्रस्तुत करते हैं।
+### How to apply time series transformations
 
-सांख्यिकीय यूनिट रूट परीक्षण यह निष्पक्ष रूप से निर्धारित करने का एक सामान्य तरीका है कि क्या (अतिरिक्त) डिफरेंसिंग आवश्यक है। ये स्टेशनरिटी के सांख्यिकीय परिकल्पना परीक्षण (hypothesis tests) हैं जो यह निर्धारित करने के लिए डिज़ाइन किए गए हैं कि क्या डिफरेंसिंग की आवश्यकता है।
+To satisfy the stationarity assumption ka linear time series models, hum need to transform the original time series, often mein several steps. Common transformations include the application ka the (natural) logarithm to convert an exponential growth pattern into a linear trend aur stabilize the variance, or differencing.
 
-### कोड उदाहरण: समय श्रृंखला डेटा के साथ काम करना
-- नोटबुक [tsa_and_stationarity](01_tsa_and_stationarity.ipynb) इस खंड में चर्चा की गई अवधारणाओं का वर्णन करती है।
+### How to diagnose aur address unit roots
 
-### संसाधन
-- [Analysis of Financial Time Series, 3rd Edition, Ruey S. Tsay](https://www.wiley.com/en-us/Analysis+of+Financial+Time+Series%2C+3rd+Edition-p-9780470414354)
-- [Quantitative Equity Investing: Techniques and Strategies, Frank J. Fabozzi, Sergio M. Focardi, Petter N. Kolm](https://www.wiley.com/en-us/Quantitative+Equity+Investing%3A+Techniques+and+Strategies-p-9780470262474)
+Unit roots pose a particular problem ke liye determining the transformation that will render a time series stationary. mein practice, time series ka interest rates or asset prices hain often not stationary, ke liye example, because there does not exist a price level to which the series reverts. The most prominent example ka a non-stationary series hai the random walk.
+
+The defining characteristic ka a unit-root non-stationary series hai long memory: since current values hain the sum ka past disturbances, large innovations persist ke liye much longer than ke liye a mean-reverting, stationary series. Identifying the correct transformation, aur mein particular, the appropriate number aur lags ke liye differencing hai not always clear-cut. hum present a few heuristics to guide the process.
+
+Statistical unit root tests hain a common way to determine objectively whether (additional) differencing hai necessary. These hain statistical hypothesis tests ka stationarity that hain designed to determine whether differencing hai required.
+
+### Code example: working ke saath time series data
+
+- Notebook [tsa_and_stationarity](01_tsa_and_stationarity.ipynb) illustrates the concepts discussed mein this section.
+
+### Sansadhan (Resources)
+
+- [Analysis ka Financial Time Series, 3rd Edition, Ruey S. Tsay](https://www.wiley.com/en-us/Analysis+ka+Financial+Time+Series%2C+3rd+Edition-p-9780470414354)
+- [Quantitative Equity Investing: Techniques aur Strategies, Frank J. Fabozzi, Sergio M. Focardi, Petter N. Kolm](https://www.wiley.com/en-us/Quantitative+Equity+Investing%3A+Techniques+aur+Strategies-p-9780470262474)
 - `statsmodels` Time Series Analysis [docs](https://www.statsmodels.org/dev/tsa.html)
 
-## यूनीवेरिएयट समय श्रृंखला मॉडल (Univariate Time Series Models)
+## Univariate Time Series Models
 
-यूनीवेरिएयट समय श्रृंखला मॉडल समय श्रृंखला के मूल्य को उसके पिछले मूल्यों के रैखिक संयोजन और संभवतः पिछले शोर (disturbance) शब्दों से संबंधित करते हैं।
+Univariate time series models relate the value ka the time series at the point mein time ka interest to a linear combination ka lagged values ka the series aur possibly past disturbance terms.
 
-जबकि एक्सपोनेंशियल स्मूथिंग मॉडल डेटा में ट्रेंड और सीजनलिटी के विवरण पर आधारित होते हैं, ARIMA मॉडल डेटा में ऑटो-कोरिलेशन का वर्णन करने का लक्ष्य रखते हैं। ARIMA(p, d, q) मॉडलों को स्टेशनरिटी की आवश्यकता होती है और वे दो बिल्डिंग ब्लॉक्स का लाभ उठाते हैं:
-- ऑटोरेग्र्रेसिव (AR) शब्द जिसमें समय श्रृंखला के p-lagged मान शामिल होते हैं
-- मूविंग एवरेज (MA) शब्द जिसमें q-lagged शोर शामिल होता है
+While exponential smoothing models hain based on a description ka the trend aur seasonality mein the data, ARIMA models aim to describe the autocorrelations mein the data. ARIMA(p, d, q) models require stationarity aur leverage two building blocks:
+- Autoregressive (AR) terms consisting ka p-lagged values ka the time series
+- Moving average (MA) terms that contain q-lagged disturbances
 
-### ऑटोरेग्र्रेसिव मॉडल कैसे बनाएं
-ऑर्डर p का एक AR मॉडल विभिन्न अंतराल पर समय श्रृंखला मानों के बीच रैखिक निर्भरता को कैप्चर करने का लक्ष्य रखता है। यह परिणाम के पुराने मूल्यों पर कई रैखिक प्रतिगमन (multiple linear regression) के समान है।
+### How to build autoregressive models
 
-### मूविंग एवरेज मॉडल कैसे बनाएं
-ऑर्डर q का एक MA मॉडल प्रतिगमन-जैसे मॉडल में समय श्रृंखला के पुराने मूल्यों के बजाय q पिछले शोर (disturbances) का उपयोग करता है। चूंकि हम व्हाइट-नॉइस शोर मानों को नहीं देखते हैं, इसलिए MA(q) वैसा प्रतिगमन मॉडल नहीं है जैसा हमने अब तक देखा है। लीस्ट स्क्वेयर्स (least squares) का उपयोग करने के बजाय, MA(q) मॉडलों का अनुमान अधिकतम संभावना (Maximum Likelihood Estimation - MLE) का उपयोग करके लगाया जाता है।
+An AR model ka order p aims to capture the linear dependence between time series values at different lags. It closely resembles a multiple linear regression on lagged values ka the outcome.
 
-### ARIMA मॉडल और विस्तार कैसे बनाएं
-ऑटोरेग्र्रेसिव इंटीग्रेटेड मूविंग-एवरेज ARIMA(p, d, q) मॉडल AR(p) और MA(q) प्रक्रियाओं को जोड़ते हैं ताकि इन बिल्डिंग ब्लॉक्स की पूरकता का लाभ उठाया जा सके और अधिक संक्षिप्त रूप का उपयोग करके और मापदंडों की संख्या को कम करके मॉडल विकास को सरल बनाया जा सके, जिससे बदले में ओवरफिटिंग का जोखिम कम हो जाता है।
+### How to build moving average models
+
+An MA model ka order q use karta hai q past disturbances rather than lagged values ka the time series mein a regression-like model. Since hum do not observe the white-noise disturbance values, MA(q) hai not a regression model like the ones hum have seen so far. Rather than use karke least squares, MA(q) models hain estimated use karke maximum likelihood (MLE).
+
+### How to build ARIMA models aur extensions
+
+Autoregressive integrated moving-average ARIMA(p, d, q) models combine AR(p) aur MA(q) processes to leverage the complementarity ka these building blocks aur simplify model development by use karke a more compact form aur reducing the number ka parameters, mein turn reducing the risk ka overfitting.
 
 - statsmodels State-Space Models [docs](https://www.statsmodels.org/dev/statespace.html)
 
-### कोड उदाहरण: ARIMA और SARIMAX मॉडल के साथ मैक्रो फंडामेंटल्स का पूर्वानुमान
-हम 1988-2017 की अवधि के लिए औद्योगिक उत्पादन समय श्रृंखला पर मासिक डेटा के लिए एक SARIMAX मॉडल बनाएंगे। कार्यान्वयन विवरण के लिए नोटबुक [arima_models](02_arima_models.ipynb) देखें।
+### Code example: forecasting macro fundamentals ke saath ARIMA aur SARIMAX models
 
-### अस्थिरता का पूर्वानुमान लगाने के लिए समय श्रृंखला मॉडल का उपयोग कैसे करें
-यूनीवेरिएयट समय श्रृंखला मॉडलों के अनुप्रयोग का एक विशेष रूप से महत्वपूर्ण क्षेत्र अस्थिरता (volatility) की भविष्यवाणी है। वित्तीय समय श्रृंखला की अस्थिरता आमतौर पर समय के साथ स्थिर नहीं होती है, बल्कि बदलती रहती है, जिसमें अस्थिरता के दौर एक साथ क्लस्टर होते हैं। विचरण (variance) में परिवर्तन शास्त्रीय ARIMA मॉडलों का उपयोग करके समय श्रृंखला पूर्वानुमान के लिए चुनौतियाँ पैदा करते हैं।
+hum will build a SARIMAX model ke liye monthly data on an industrial production time series ke liye the 1988-2017 period. See notebook [arima_models](02_arima_models.ipynb) ke liye implementation details.
 
-### अस्थिरता-पूर्वानुमान मॉडल कैसे बनाएं
-किसी परिसंपत्ति-रिटर्न श्रृंखला के लिए अस्थिरता मॉडल के विकास में चार चरण होते हैं:
-1. ACF और PACF द्वारा प्रकट सीरियल निर्भरता के आधार पर वित्तीय समय श्रृंखला के लिए एक ARMA समय श्रृंखला मॉडल बनाएं।
-2. ARCH/GARCH प्रभावों के लिए मॉडल के अवशेषों (residuals) का परीक्षण करें, फिर से वर्ग अवशिष्ट (squared residual) की श्रृंखला के लिए ACF और PACF पर भरोसा करें।
-3. यदि सीरियल कोरिलेशन प्रभाव महत्वपूर्ण हैं, तो एक अस्थिरता मॉडल निर्दिष्ट करें, और माध्य और अस्थिरता समीकरणों का संयुक्त रूप से अनुमान लगाएं।
-4. फिट किए गए मॉडल की सावधानीपूर्वक जांच करें और यदि आवश्यक हो तो इसे परिष्कृत (refine) करें।
+### How to use time series models to forecast volatility
 
-### कोड उदाहरण: अस्थिरता पूर्वानुमान
-नोटबुक [arch_garch_models](03_arch_garch_models.ipynb) नैस्डैक (NASDAQ) डेटा के साथ अस्थिरता पूर्वानुमान के लिए समय श्रृंखला मॉडल का अनुमान लगाने के लिए ARCH लाइब्रेरी के उपयोग को प्रदर्शित करती है।
+A particularly important area ka application ke liye univariate time series models hai the prediction ka volatility. The volatility ka financial time series hai usually not constant over time but changes, ke saath bouts ka volatility clustering together. Changes mein variance create challenges ke liye time series forecasting use karke the classical ARIMA models.
 
-### संसाधन
+### How to build a volatility-forecasting model
+
+The development ka a volatility model ke liye an asset-return series consists ka four steps:
+1. Build an ARMA time series model ke liye the financial time series based on the serial dependence revealed by the ACF aur PACF.
+2. Test the residuals ka the model ke liye ARCH/GARCH effects, again relying on the ACF aur PACF ke liye the series ka the squared residual.
+3. Specify a volatility model if serial correlation effects hain significant, aur jointly estimate the mean aur volatility equations.
+4. Check the fitted model carefully aur refine it if necessary.
+
+### Code examples: volatility forecasts
+
+Notebook [arch_garch_models](03_arch_garch_models.ipynb) demonstrate karta hai the usage ka the ARCH library to estimate time series models ke liye volatility forecasting ke saath NASDAQ data.
+
+### Sansadhan (Resources)
+
 - NYU Stern [VLAB](https://vlab.stern.nyu.edu/)
 - ARCH Library
     - [docs](https://arch.readthedocs.io/en/latest/index.html) 
     - [examples](http://nbviewer.jupyter.org/github/bashtage/arch/blob/master/examples/univariate_volatility_modeling.ipynb)
 
-## मल्टीवेरिएयट समय श्रृंखला मॉडल (Multivariate Time Series Models)
+## Multivariate Time Series Models
 
-मल्टीवेरिएयट समय श्रृंखला मॉडल एक साथ कई समय श्रृंखलाओं की गतिशीलता को कैप्चर करने और अधिक विश्वसनीय भविष्यवाणियों के लिए इन श्रृंखलाओं में निर्भरता का लाभ उठाने के लिए डिज़ाइन किए गए हैं।
+Multivariate time series models hain designed to capture the dynamic ka multiple time series simultaneously aur leverage dependencies across these series ke liye more reliable predictions.
 
-यूनीवेरिएयट समय-श्रृंखला मॉडल जैसे ARMA दृष्टिकोण एक लक्ष्य चर और उसके पिछले मूल्यों या पुराने शोर और ARMAX मामले में एक्सोजेनस (exogenous) श्रृंखला के बीच सांख्यिकीय संबंधों तक सीमित हैं। इसके विपरीत, मल्टीवेरिएयट समय-श्रृंखला मॉडल अन्य समय श्रृंखलाओं के पिछले मानों को भी लक्ष्य को प्रभावित करने की अनुमति देते हैं। यह प्रभाव सभी श्रृंखलाओं पर लागू होता है, जिसके परिणामस्वरूप जटिल परस्पर क्रियाएँ होती हैं।
+Univariate time-series models like the ARMA approach hain limited to statistical relationships between a target variable aur its lagged values or lagged disturbances aur exogenous series mein the ARMAX case. mein contrast, multivariate time-series models also allow ke liye lagged values ka other time series to affect the target. Yeh effect applies to all series, resulting mein complex interactions.
 
-बेहतर पूर्वानुमान की संभावना के अलावा, क्रॉस-सीरीज निर्भरता में अंतर्दष्टि प्राप्त करने के लिए भी मल्टीवेरिएयट समय श्रृंखला का उपयोग किया जाता है। उदाहरण के लिए, अर्थशास्त्र में, मल्टीवेरिएयट समय श्रृंखला का उपयोग यह समझने के लिए किया जाता है कि ब्याज दर जैसे किसी एक चर में नीतिगत परिवर्तन विभिन्न क्षितिज पर अन्य चरों को कैसे प्रभावित कर सकते हैं।
+mein addition to potentially better forecasting, multivariate time series hain also used to gain insights into cross-series dependencies. Udaharan ke liye, mein economics, multivariate time series hain used to understand how policy changes to one variable, such as an interest rate, may affect other variables over different horizons. 
 
 - [New Introduction to Multiple Time Series Analysis, Lütkepohl, Helmut, Springer, 2005](https://www.springer.com/us/book/9783540401728)
 
-### वेक्टर ऑटोरेग्र्रेसिव (VAR) मॉडल
-वेक्टर ऑटोरेग्र्रेसिव VAR(p) मॉडल AR(p) मॉडल को k श्रृंखलाओं तक विस्तारित करता है, जिसमें k समीकरणों की एक प्रणाली बनाई जाती है जहाँ प्रत्येक में सभी k श्रृंखलाओं के p पुराने मान होते हैं।
+### The vector autoregressive (VAR) model
 
-VAR(p) मॉडलों को स्टेशनरिटी की भी आवश्यकता होती है, ताकि यूनीवेरिएयट समय-श्रृंखला मॉडलिंग के प्रारंभिक चरण यहाँ भी लागू हों। पहले, श्रृंखला का अन्वेषण करें और आवश्यक परिवर्तनों का निर्धारण करें, और फिर यह सत्यापित करने के लिए संवर्धित डिकी-फुलर (augmented Dickey-Fuller) परीक्षण लागू करें कि प्रत्येक श्रृंखला के लिए स्टेशनरिटी मानदंड पूरा होता है और अन्यथा आगे के परिवर्तन लागू करें। इसका अनुमान प्रारंभिक जानकारी के आधार पर OLS के साथ या MLE के साथ लगाया जाता है, जो सामान्य रूप से वितरित त्रुटियों (normally distributed errors) के लिए समकक्ष है लेकिन अन्यथा नहीं।
+The vector autoregressive VAR(p) model extends the AR(p) model to k series by creating a system ka k equations where each contain karta hai p lagged values ka all k series.
 
-यदि k श्रृंखलाओं में से कुछ या सभी यूनिट-रूट गैर-स्थिर हैं, तो वे सह-एकीकृत (cointegrated) हो सकती हैं (अगला खंड देखें)। मल्टीपल समय श्रृंखला के लिए यूनिट रूट अवधारणा के इस विस्तार का मतलब है कि दो या दो से अधिक श्रृंखलाओं का एक रैखिक संयोजन स्थिर है और, इसलिए, माध्य-प्रत्यावर्तन (mean-reverting) है।
+VAR(p) models also require stationarity, so that the initial steps from univariate time-series modeling carry over. First, explore the series aur determine the necessary transformations, aur then apply the augmented Dickey-Fuller test to verify that the stationarity criterion hai met ke liye each series aur apply further transformations otherwise. It can be estimated ke saath OLS conditional on initial information or ke saath MLE, which hai equivalent ke liye normally distributed errors but not otherwise.
 
-### कोड उदाहरण: मैक्रो फंडामेंटल्स पूर्वानुमान के लिए VAR मॉडल का उपयोग कैसे करें
-नोटबुक [vector_autoregressive_model](04_vector_autoregressive_model.ipynb) प्रदर्शित करती है कि मैक्रो फंडामेंटल्स समय श्रृंखला के लिए VAR मॉडल का अनुमान लगाने के लिए `statsmodels` का उपयोग कैसे किया जाए।
+If some or all ka the k series hain unit-root non-stationary, they may be cointegrated (see next section). Yeh extension ka the unit root concept to multiple time series means that a linear combination ka two or more series hai stationary aur, hence, mean-reverting. 
 
-### संसाधन
+### Code example: How to use the VAR model ke liye macro fundamentals forecasts
+
+Notebook [vector_autoregressive_model](04_vector_autoregressive_model.ipynb) demonstrate karta hai how to use `statsmodels` to estimate a VAR model ke liye macro fundamentals time series.
+
+### Sansadhan (Resources)
+
 - `statsmodels` Vector Autoregression [docs](https://www.statsmodels.org/dev/vector_ar.html)
-- [Time Series Analysis in Python with statsmodels](https://conference.scipy.org/proceedings/scipy2011/pdfs/statsmodels.pdf), Wes McKinney, Josef Perktold, Skipper Seabold, SciPY Conference 2011
+- [Time Series Analysis mein Python ke saath statsmodels](https://conference.scipy.org/proceedings/scipy2011/pdfs/statsmodels.pdf), Wes McKinney, Josef Perktold, Skipper Seabold, SciPY Conference 2011
 
-## सह-एकीकरण (Cointegration) – एक सामान्य प्रवृत्ति वाली समय श्रृंखला
+## Cointegration – time series ke saath a common trend
 
-एक एकीकृत मल्टीवेरिएयट श्रृंखला की अवधारणा इस तथ्य से जटिल है कि प्रक्रिया की सभी घटक श्रृंखलाएं व्यक्तिगत रूप से एकीकृत हो सकती हैं लेकिन प्रक्रिया संयुक्त रूप से एकीकृत नहीं होती है इस अर्थ में कि श्रृंखला के एक या अधिक रैखिक संयोजन मौजूद हैं जो एक नई स्थिर श्रृंखला उत्पन्न करते हैं।
+The concept ka an integrated multivariate series hai complicated by the fact that all the component series ka the process may be individually integrated but the process hai not jointly integrated mein the sense that one or more linear combinations ka the series exist that produce a new stationary series.
 
-दूसरे शब्दों में, दो सह-एकीकृत श्रृंखलाओं के संयोजन में एक स्थिर माध्य होता है जिस पर यह रैखिक संयोजन वापस लौटता है। इस विशेषता वाली एक मल्टीवेरिएयट श्रृंखला को सह-एकीकृत कहा जाता है। हम सह-एकीकरण के परीक्षण के लिए दो प्रमुख दृष्टिकोण प्रदर्शित करते हैं:
-- एंगल-ग्रेंजर (Engle–Granger) दो-चरणीय विधि
-- जोहानसन (Johansen) प्रक्रिया
+mein other words, a combination ka two co-integrated series has a stable mean to which this linear combination reverts. A multivariate series ke saath this characteristic hai said to be co-integrated. Yeh also applies when the individual series hain integrated ka a higher order aur the linear combination reduces the overall order ka integration. 
 
-### पेयर्स ट्रेडिंग: सह-एकीकरण के साथ सांख्यिकीय आर्बिट्राज
-सांख्यिकीय आर्बिट्राज उन रणनीतियों को संदर्भित करता है जो परिसंपत्तियों के सापेक्ष गलत मूल्य निर्धारण का लाभ उठाने के लिए किसी सांख्यिकीय मॉडल या विधि का उपयोग करती हैं जबकि बाजार तटस्थता (market neutrality) का स्तर बनाए रखती हैं।
+hum demonstrate two major approaches to testing ke liye cointegration:
+- The Engle–Granger two-step method
+- The Johansen procedure
 
-पेयर्स ट्रेडिंग एक वैचारिक रूप से सीधा दृष्टिकोण है जिसे अस्सी के दशक के मध्य से एल्गोरिथम ट्रेडर्स द्वारा नियोजित किया गया है। लक्ष्य दो ऐसी संपत्तियों को ढूंढना है जिनकी कीमतें ऐतिहासिक रूप से एक साथ चली हैं, स्प्रेड (उनकी कीमतों के बीच का अंतर) को ट्रैक करना है, और एक बार स्प्रेड चौड़ा होने पर, उस हारने वाले को खरीदना है जो सामान्य प्रवृत्ति से नीचे गिर गया है और जीतने वाले को शॉर्ट (short) करना है। यदि संबंध बना रहता है, तो कीमतें एकत्रित होने और पोजीशन बंद होने पर लॉन्ग और/या शॉर्ट लेग लाभ प्रदान करेंगे।
+### Pairs trading: Statistical arbitrage ke saath cointegration
 
-यह दृष्टिकोण मल्टीपल प्रतिभूतियों से बास्केट बनाकर और एक परिसंपत्ति का दूसरे के खिलाफ व्यापार करने के लिए मल्टीवेरिएयट संदर्भ तक विस्तारित होता है।
+Statistical arbitrage refers to strategies that employ some statistical model or method to take advantage ka what appears to be relative mispricing ka assets while maintaining a level ka market neutrality.
 
-व्यावहार में, रणनीति के लिए दो चरणों की आवश्यकता होती है:
-1. फॉर्मेशन चरण (Formation phase): उन प्रतिभूतियों की पहचान करें जिनका दीर्घकालिक माध्य-प्रत्यावर्तन संबंध है। आदर्श रूप से, स्प्रेड में उच्च विचरण होना चाहिए ताकि सामान्य प्रवृत्ति पर विश्वसनीय रूप से लौटते हुए लगातार लाभदायक व्यापारों की अनुमति मिल सके।
-2. ट्रेडिंग चरण (Trading phase): मूल्य संचलन के कारण स्प्रेड के विचलन और अभिसरण (converge) के रूप में एंट्री और एग्जिट ट्रेडिंग नियमों को ट्रिगर करें।
+Pairs trading hai a conceptually straightforward strategy that has been employed by algorithmic traders since at least the mid-eighties (Gatev, Goetzmann, aur Rouwenhorst 2006). The goal hai to find two assets whose prices have historically moved together, track the spread (the difference between their prices), aur, once the spread widens, buy the loser that has dropped below the common trend aur short the winner. If the relationship persists, the long aur/or the short leg will deliver profits as prices converge aur the positions hain closed. 
 
-### सह-चलने वाली संपत्तियों के चयन और व्यापार के लिए वैकल्पिक दृष्टिकोण
- Krauss (2017) चार अलग-अलग पद्धतियों और कई अन्य हालिया दृष्टिकोणों की पहचान करता है, जिनमें ML-आधारित पूर्वानुमान शामिल हैं:
+Yeh approach extends to a multivariate context by forming baskets from multiple securities aur trade one asset against a basket ka two baskets against each other.
 
-- **दूरी (Distance)** दृष्टिकोण:Candidate जोड़े की पहचान कोरिलेशन जैसे दूरी मेट्रिक्स के साथ करती है और एंट्री और एग्जिट ट्रेडों को ट्रिगर करने के लिए बोलिंगर बैंड (Bollinger Bands) जैसे गैर-पैरामीट्रिक थ्रेशोल्ड का उपयोग करती है।
-- **सह-एकीकरण (Cointegration)** दृष्टिकोण: यह दृष्टिकोण दो या दो से अधिक चरों के बीच दीर्घकालिक संबंध के अर्थमितीय मॉडल (econometric model) पर निर्भर करता है और सांख्यिकीय परीक्षणों की अनुमति देता है जो सरल दूरी मेट्रिक्स की तुलना में अधिक विश्वसनीयता का वादा करते हैं।
-- **समय-श्रृंखला (Time-series)** दृष्टिकोण: ट्रेडिंग चरण पर ध्यान केंद्रित करते हुए, इस श्रेणी की रणनीतियों का लक्ष्य स्प्रेड को माध्य-प्रत्यावर्तन स्टोकेस्टिक प्रक्रिया के रूप में मॉडल करना और तदनुसार प्रवेश और निकास नियमों को अनुकूलित करना है।
-- **स्टोकेस्टिक नियंत्रण (Stochastic control)** दृष्टिकोण: लक्ष्य एक इष्टतम पोर्टफोलियो पर पहुंचने के लिए इष्टतम नीति कार्यों (policy functions) को खोजने के लिए स्टोकेस्टिक नियंत्रण सिद्धांत का उपयोग करके ट्रेडिंग नियमों को अनुकूलित करना है। हम इस प्रकार के दृष्टिकोण को अध्याय 21, सुदृढीकरण सीखना (Reinforcement Learning) में संबोधित करेंगे।
-- **अन्य दृष्टिकोण**: प्रिंसिपल कंपोनेंट एनालिसिस (अध्याय 13 देखें) और कोपुलस (copulas) जैसे सांख्यिकीय मॉडलों के अलावा, मशीन लर्निंग हाल ही में उनके सापेक्ष मूल्य या रिटर्न पूर्वानुमानों के आधार पर जोड़े की पहचान करने के लिए लोकप्रिय हो गया है।
+mein practice, the strategy requires two steps: 
+1. Formation phase: Identify securities that have a long-term mean-reverting relationship. Ideally, the spread should have a high variance to allow ke liye frequent profitable trades while reliably reverting to the common trend.
+2. Trading phase: Trigger entry aur exit trading rules as price movements cause the spread to diverge aur converge.
 
-### कोड उदाहरण: व्यवहार में पेयर्स ट्रेडिंग
-**दूरी दृष्टिकोण** (normalized) परिसंपत्ति कीमतों या उनके रिटर्न के कोरिलेशन का उपयोग करके जोड़े की पहचान करता है और सरल है और सह-एकीकरण परीक्षणों की तुलना में काफी कम गणनात्मक गहन (computationally intensive) है।
-- नोटबुक [cointegration_tests](05_cointegration_tests.ipynb) लगभग 150 शेयरों के नमूने के लिए इसे स्पष्ट करती है।
+Several approaches to the formation aur trading phases have emerged from increasingly active research mein this area across multiple asset classes over the last several years. The next subsection outlines the key differences before hum dive into an example application.
 
-दूसरी ओर, दूरी मेट्रिक्स जरूरी नहीं कि सबसे अधिक लाभदायक जोड़ों का चयन करें। आनुभविक अध्ययन पुष्टि करते हैं कि सह-एकीकृत जोड़ों के मूल्य स्प्रेड की अस्थिरता दूरी वाले जोड़ों के मूल्य स्प्रेड की अस्थिरता से लगभग दोगुनी है (Huck and Afawubo 2015)।
+### Alternative approaches to selecting aur trading comoving assets
 
-एक बड़ी संख्या में परीक्षण डेटा स्नूपिंग बायस (data snooping bias) पेश करते हैं जैसा कि अध्याय 6 में चर्चा की गई है।
+A recent comprehensive survey ka pairs trading strategies [Statistical Arbitrage Pairs Trading Strategies: Review
+aur Outlook](https://www.iwf.rw.fau.de/files/2016/03/09-2015.pdf), Krauss (2017) identifies four different methodologies plus a number ka other more recent approaches, including ML-based forecasts:
 
-#### सह-एकीकृत जोड़ों की पहचान करने के लिए दूरी-आधारित ह्यूरिस्टिक्स की गणना
-- नोटबुक [cointegration_tests](05_cointegration_tests.ipynb) करीब से देखती है कि परिसंपत्ति कीमतों के सह-आंदोलन की डिग्री के लिए विभिन्न ह्यूरिस्टिक्स सह-एकीकरण परीक्षणों के परिणाम के लिए कितने पूर्वानुमानित हैं।
+- **Distance** approach: The oldest aur most-studied method identifies candidate pairs ke saath distance metrics like correlation aur use karta hai non-parametric thresholds like Bollinger Bands to trigger entry aur exit trades. The computational simplicity allows ke liye large-scale applications ke saath demonstrated profitability across markets aur asset classes ke liye extended periods ka time since Gatev, et al. (2006). However, performance has decayed more recently.
+- **Cointegration** approach: As outlined previously, this approach relies on an econometric model ka a long-term relationship among two or more variables aur allows ke liye statistical tests that promise more reliability than simple distance metrics. Examples mein this category use the Engle-Granger aur Johansen procedures to identify pairs aur baskets ka securities as well as simpler heuristics that aim to capture the concept (Vidyamurthy 2004). Trading rules often resemble the simple thresholds used ke saath distance metrics.
+- **Time-series** approach: ke saath a focus on the trading phase, strategies mein this category aim to model the spread as a mean-reverting stochastic process aur optimize entry aur exit rules accordingly (Elliott, Hoek, aur Malcolm 2005). It assumes promising pairs have already been identified.
+- **Stochastic control** approach: Similar to the time-series approach, the goal hai to optimize trading rules use karke stochastic control theory to find value aur policy functions to arrive at an optimal portfolio (Liu aur Timmermann 2013). hum will address this type ka approach mein Chapter 21, Reinforcement Learning.
+- **Other approaches**: Besides pair identification based on unsupervised learning like principal component analysis (see Chapter 13, Unsupervised Learning) aur statistical models like copulas (Patton 2012), machine learning has become popular more recently to identify pairs based on their relative price or return forecasts (Huck 2019). hum will cover several ML algorithms that can be used ke liye this purpose aur illustrate corresponding multivariate pairs trading strategies mein the coming chapters.
 
-#### सह-एकीकरण परीक्षणों की पूर्व-गणना (Precomputing)
-नोटबुक [statistical_arbitrage_with_cointegrated_pairs](06_statistical_arbitrage_with_cointegrated_pairs.ipynb) स्टॉक और ईटीएफ के नमूने के लिए सह-एकीकरण पर आधारित एक सांख्यिकीय आर्बिट्राज रणनीति लागू करती है।
+### Code example: Pairs trading mein practice
 
-### संसाधन
-- क्वांटोपियन (Quantopian) पेयर्स ट्रेडिंग पर विभिन्न संसाधन प्रदान करता है:
+The **distance approach** identifies pairs use karke the correlation ka (normalized) asset prices or their returns aur hai simple aur orders ka magnitude less computationally intensive than cointegration tests. 
+- Notebook [cointegration_tests](05_cointegration_tests.ipynb) illustrates this ke liye a sample ka ~150 stocks ke saath four years ka daily data: it takes ~30ms to compute the correlation ke saath the returns ka an ETF, compared to 18 seconds ke liye a suite ka cointegration tests (use karke statsmodels) - 600x slower.
+
+The speed advantage hai particularly valuable because the number ka potential pairs hai the product ka the number ka candidates to be considered on either side so that evaluating combinations ka 100 stocks aur 100 ETFs requires comparing 10,000 tests (hum’ll discuss the challenge ka multiple testing bias below).
+
+On the other hand, distance metrics do not necessarily select the most profitable pairs: correlation hai maximized ke liye perfect co-movement that mein turn eliminates actual trading opportunities. Empirical studies confirm that the volatility ka the price spread ka cointegrated pairs hai almost twice as high as the volatility ka the price spread ka distance pairs (Huck aur Afawubo 2015).
+
+To balance the tradeoff between computational cost aur the quality ka the resulting pairs, Krauss (2017) recommends a procedure that combines both approaches based on his literature review:
+1. Select pairs ke saath a stable spread that shows little drift to reduce the number ka candidates
+2. Test the remaining pairs ke saath the highest spread variance ke liye cointegration
+
+Yeh process aims to select cointegrated pairs ke saath lower divergence risk while ensuring more volatile spreads that mein turn generate higher profit opportunities.
+
+A large number ka tests introduce data snooping bias as discussed mein Chapter 6, The Machine Learning Workflow: multiple testing hai likely to increase the number ka false positives that mistakenly reject the null hypothesis ka no cointegration. While statistical significance may not be necessary ke liye profitable trading (Chan 2008), a study ka commodity pairs (Cummins aur Bucca 2012) shows that controlling the familywise error rate to improve the tests’ power according to Romano aur Wolf (2010) can lead to better performance.
+
+#### Computing distance-based heuristics to identify cointegrated pairs
+
+- Notebook [cointegration_tests](05_cointegration_tests.ipynb) takes a closer look at how predictive various heuristics ke liye the degree ka comovement ka asset prices hain ke liye the result ka cointegration tests. The example code use karta hai a sample ka 172 stocks aur 138 ETFs traded on the NYSE aur NASDAQ ke saath daily data from 2010 - 2019 provided by Stooq. 
+
+The securities represent the largest average dollar volume over the sample period mein their respective class; highly correlated aur stationary assets have been removed. See the notebook [create_datasets](../data/create_datasets.ipynb) mein the data folder ka the GitHub repository ke liye downloading ke liye instructions on how to obtain the data aur the notebook cointegration_tests ke liye the relevant code aur additional preprocessing aur exploratory details.
+
+#### Precomputing the cointegration tests
+
+Notebook [statistical_arbitrage_with_cointegrated_pairs](06_statistical_arbitrage_with_cointegrated_pairs.ipynb) implements a statistical arbitrage strategy based on cointegration ke liye the sample ka stocks aur ETFs aur the 2017-2019 period.
+
+It first generates aur stores the cointegration tests ke liye all candidate pairs aur the resulting trading signals before hum backtest a strategy based on these signals given the computational intensity ka the process.
+
+### Sansadhan (Resources)
+
+- Quantopian offers various resources on pairs trading:
     - [Introduction to Pairs Trading](https://www.quantopian.com/lectures/introduction-to-pairs-trading)
     - [Quantopian Johansen](https://www.quantopian.com/posts/trading-baskets-co-integrated-with-spy)
     - [Quantopian PT](https://www.quantopian.com/posts/how-to-build-a-pairs-trading-strategy-on-quantopian)
     - [Pairs Trading Basics: Correlation, Cointegration And Strategy](https://blog.quantinsti.com/pairs-trading-basics/)
-- अतिरिक्त ब्लॉग पोस्ट में शामिल हैं:
-    - [Pairs Trading using Data-Driven Techniques](https://medium.com/auquan/pairs-trading-data-science-7dbedafcfe5a)
+- Additional blog posts include:
+    - [Pairs Trading using Data-Driven Techniques: Simple Trading Strategies Part 3](https://medium.com/auquan/pairs-trading-data-science-7dbedafcfe5a)
     - [Pairs Trading Johansen & Kalman](https://letianzj.github.io/kalman-filter-pairs-trading.html)
     - [Copulas](https://twiecki.io/blog/2018/05/03/copulas/) by Thomas Wiecki

@@ -1,174 +1,174 @@
-# Machine Learning Workflow
+# The Machine Learning Workflow
 
-Ye chapter is book ke part 2 ki shuruwat karta hai jahan hum illustrate karte hain ki aap trading ke liye supervised aur unsupervised machine learning (ML) models ki ek range ka use kaise kar sakte hain. Various Python libraries ka use karke relevant applications demonstrate karne se pehle hum har model ke assumptions aur use cases explain karenge. Models ki categories jinhe hum parts 2-4 mein cover karenge unme shamil hain:
+Yeh chapter starts part 2 ka this book where hum illustrate how you can use a range ka supervised aur unsupervised machine learning (ML) models ke liye trading. hum will explain each model's assumptions aur use cases before hum demonstrate relevant applications use karke various Python libraries. The categories ka models that hum will cover mein parts 2-4 include:
 
-- Cross-section, time series, aur panel data ke regression aur classification ke liye Linear models
-- Generalized additive models, jisme nonlinear tree-based models shamil hain, jaise decision trees
-- Ensemble models, jisme random forest aur gradient-boosting machines shamil hain
-- Dimensionality reduction aur clustering ke liye Unsupervised linear aur nonlinear methods
-- Neural network models, jisme recurrent aur convolutional architectures shamil hain
+- Linear models ke liye the regression aur classification ka cross-section, time series, aur panel data
+- Generalized additive models, including nonlinear tree-based models, such as decision trees
+- Ensemble models, including random forest aur gradient-boosting machines
+- Unsupervised linear aur nonlinear methods ke liye dimensionality reduction aur clustering
+- Neural network models, including recurrent aur convolutional architectures
 - Reinforcement learning models
 
-Hum in models ko is book ke first part mein introduce kiye gaye market, fundamental, aur alternative data sources par apply karenge. Hum ab tak cover kiye gaye material par build karenge aur demonstrate karenge ki in models ko ek trading strategy mein kaise embed karein jo model signals ko trades mein translate karti hai, portfolio ko kaise optimize karein, aur strategy performance ko kaise evaluate karein.
+hum will apply these models to the market, fundamental, aur alternative data sources introduced mein the first part ka this book. hum will build on the material covered so far by demonstrating how to embed these models mein a trading strategy that translates model signals into trades, how to optimize portfolio, aur how to evaluate strategy performance.
 
-Kai aspects hain jo inme se kai models aur unke applications mein common hain. Ye chapter in common aspects ko cover karta hai taaki hum agle chapters mein model-specific usage par focus kar sakein. Inme ek objective ya loss function ko optimize karke data se functional relationship seekhne ka overarching goal shamil hai. Inme model performance measure karne ke closely related methods bhi shamil hain.
+There hain several aspects that many ka these models aur their applications have mein common. Yeh chapter covers these common aspects so that hum can focus on model-specific usage mein the following chapters. They include the overarching goal ka learning a functional relationship from data by optimizing an objective or loss function. They also include the closely related methods ka measuring model performance.
 
-Hum unsupervised aur supervised learning ke beech antar karte hain aur algorithmic trading ke liye use cases outline karte hain. Hum supervised regression aur classification problems, input aur output data ke beech relationships ke statistical inference ke liye supervised learning ka use aur future outputs ke prediction ke liye iske use ko contrast karte hain. Hum ye bhi illustrate karte hain ki kaise prediction errors model ke bias ya variance ki wajah se hote hain, ya data mein high noise-to-signal ratio ki wajah se. Sabse mahatvapurn baat, hum overfitting jaise errors ke sources detect karne aur aapke model ki performance improve karne ke methods present karte hain.
+hum distinguish between unsupervised aur supervised learning aur outline use cases ke liye algorithmic trading. hum contrast supervised regression aur classification problems, the use ka supervised learning ke liye statistical inference ka relationships between input aur output data ke saath its use ke liye the prediction ka future outputs. hum also illustrate how prediction errors hain due to the model's bias or variance, or because ka a high noise-to-signal ratio mein the data. Most importantly, hum present methods to diagnose sources ka errors like overfitting aur improve your model's performance.
 
-Agar aap pehle se hi ML se kaafi familiar hain, to feel free karke aage badhein aur sidhe ye seekhne mein dive karein ki algorithmic trading strategy ke liye alpha factors produce aur combine karne ke liye ML models ka use kaise karein.
+If you hain already quite familiar ke saath ML, feel free to skip ahead aur dive right into learning how to use ML models to produce aur combine alpha factors ke liye an algorithmic trading strategy.
 
-## Vishay Soochi (Content)
+## Vishay-suchi (Content)
 
-1. [Data se machine learning kaise kaam karti hai](#data-se-machine-learning-kaise-kaam-karti-hai)
-    * [Key challenge: Given task ke liye sahi algorithm dhundhna](#key-challenge-given-task-ke-liye-sahi-algorithm-dhundhna)
-    * [Supervised Learning: example se task sikhana](#supervised-learning-example-se-task-sikhana)
-    * [Unsupervised learning: Useful patterns pehchanne ke liye data explore karna](#unsupervised-learning-useful-patterns-pehchanne-ke-liye-data-explore-karna)
-        - [Trading strategies ke liye use cases: Risk management se text processing tak](#trading-strategies-ke-liye-use-cases-risk-management-se-text-processing-tak)
-    * [Reinforcement learning: Karke seekhna, ek baar mein ek kadam](#reinforcement-learning-karke-seekhna-ek-baar-mein-ek-kadam)
-2. [Machine Learning Workflow](#machine-learning-workflow)
-    * [Code Example: K-nearest neighbors ke saath ML workflow](#code-example-k-nearest-neighbors-ke-saath-ml-workflow)
-3. [Problem frame karein: goals aur metrics](#problem-frame-karein-goals-aur-metrics)
-4. [Data Collect aur prepare karein](#data-collect-aur-prepare-karein)
-5. [Features ko kaise explore, extract aur engineer karein](#features-ko-kaise-explore-extract-aur-engineer-karein)
+1. [How machine learning from data works](#how-machine-learning-from-data-works)
+    * [The key challenge: Finding the right algorithm for the given task](#the-key-challenge-finding-the-right-algorithm-for-the-given-task)
+    * [Supervised Learning: teaching a task by example](#supervised-learning-teaching-a-task-by-example)
+    * [Unsupervised learning: Exploring data to identify useful patterns](#unsupervised-learning-exploring-data-to-identify-useful-patterns)
+        - [Use cases for trading strategies: From risk management to text processing](#use-cases-for-trading-strategies-from-risk-management-to-text-processing)
+    * [Reinforcement learning: Learning by doing, one step at a time](#reinforcement-learning-learning-by-doing-one-step-at-a-time)
+2. [The Machine Learning Workflow](#the-machine-learning-workflow)
+    * [Code Example: ML workflow with K-nearest neighbors](#code-example-ml-workflow-with-k-nearest-neighbors)
+3. [Frame the problem: goals & metrics](#frame-the-problem-goals--metrics)
+4. [Collect & prepare the data](#collect--prepare-the-data)
+5. [How to explore, extract aur engineer features](#how-to-explore-extract-aur-engineer-features)
     * [Code Example: Mutual Information](#code-example-mutual-information)
-6. [ML algorithm select karein](#ml-algorithm-select-karein)
-7. [Model design aur tune karein](#model-design-aur-tune-karein)
+6. [Select an ML algorithm](#select-an-ml-algorithm)
+7. [Design aur tune the model](#design-aur-tune-the-model)
     * [Code Example: Bias-Variance Trade-Off](#code-example-bias-variance-trade-off)
-8. [Model selection ke liye cross-validation ka use kaise karein](#model-selection-ke-liye-cross-validation-ka-use-kaise-karein)
-    * [Code Example: Python mein cross-validation kaise implement karein](#code-example-python-mein-cross-validation-kaise-implement-karein)
-9. [Scikit-learn ke saath Parameter tuning](#scikit-learn-ke-saath-parameter-tuning)
-    * [Code Example: Yellowbricks ke saath Learning aur Validation curves](#code-example-yellowbricks-ke-saath-learning-aur-validation-curves)
-    * [Code Example: GridSearchCV aur pipeline ka use karke Parameter tuning](#code-example-gridsearchcv-aur-pipeline-ka-use-karke-parameter-tuning)
-10. [Finance mein cross-validation ke saath Challenges](#finance-mein-cross-validation-ke-saath-challenges)
-    * [Purging, embargoing, aur combinatorial CV](#purging-embargoing-aur-combinatorial-cv)
+8. [How to use cross-validation ke liye model selection](#how-to-use-cross-validation-ke liye-model-selection)
+    * [Code Example: How to implement cross-validation in Python](#code-example-how-to-implement-cross-validation-in-python)
+9. [Parameter tuning ke saath scikit-learn](#parameter-tuning-ke saath-scikit-learn)
+    * [Code Example: Learning and Validation curves with yellowbricks](#code-example-learning-and-validation-curves-with-yellowbricks)
+    * [Code Example: Parameter tuning using GridSearchCV and pipeline](#code-example-parameter-tuning-using-gridsearchcv-and-pipeline)
+10. [Challenges ke saath cross-validation mein finance](#challenges-ke saath-cross-validation-mein-finance)
+    * [Purging, embargoing, and combinatorial CV](#purging-embargoing-and-combinatorial-cv)
 
 
-## Data se machine learning kaise kaam karti hai
+## How machine learning from data works
 
-ML ki kai definitions data mein meaningful patterns ke automated detection ke ird-gird ghumti hain. Do prominent examples mein shamil hain:
-- AI pioneer Arthur Samuelson ne 1959 mein ML ko computer science ke ek subfield ke roop mein define kiya jo computers ko explicitly program kiye bina seekhne ki kshamta deta hai.
-- Tom Mitchell, jo field ke current leaders mein se ek hain, ne 1998 mein ek well-posed learning problem ko zyada specifically pin down kiya: ek computer program kisi task aur performance measure ke sandarbh mein experience se seekhta hai ki kya task ki performance experience ke saath improve hoti hai (Mitchell, 1997).
+Many definitions ka ML revolve around the automated detection ka meaningful patterns mein data. Two prominent examples include:
+- AI pioneer Arthur Samuelson defined ML mein 1959 as a subfield ka computer science that gives computers the ability to learn without being explicitly programmed. 
+- Tom Mitchell, one ka the current leaders mein the field, pinned down a well-posed learning problem more specifically mein 1998: a computer program learns from experience ke saath respect to a task aur a performance measure ka whether the performance ka the task improves ke saath experience (Mitchell, 1997).
 
-Experience algorithm ko training data ke form mein present kiya jata hai. Problems solve karne wali machines banane ki pichli koshishon se principal difference ye hai ki algorithm decisions lene ke liye jo rules use karta hai wo humans dwara program kiye jane ke bajaye data se seekhe jate hain, jaisa ki, example ke liye, 1980s mein prominent expert systems ke case mein tha.
+Experience hai presented to an algorithm mein the form ka training data. The principal difference to previous attempts at building machines that solve problems hai that the rules that an algorithm use karta hai to make decisions hain learned from the data as opposed to being programmed by humans as was the case, ke liye example, ke liye expert systems prominent mein the 1980s.
 
-Algorithm aur general applications ki wide range ko cover karne wale recommended textbooks mein shamil hain:
+Recommended textbooks that cover a wide range ka algorithms aur general applications include 
 - [An Introduction to Statistical Learning](http://faculty.marshall.usc.edu/gareth-james/ISL/), James et al (2013)
-- [The Elements of Statistical Learning: Data Mining, Inference, and Prediction](https://web.stanford.edu/~hastie/ElemStatLearn/), Hastie, Tibshirani, and Friedman (2009)
-- [Pattern Recognition and Machine Learning](https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf), Bishop (2006)
+- [The Elements ka Statistical Learning: Data Mining, Inference, aur Prediction](https://web.stanford.edu/~hastie/ElemStatLearn/), Hastie, Tibshirani, aur Friedman (2009)
+- [Pattern Recognition aur Machine Learning](https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-aur-Machine-Learning-2006.pdf), Bishop (2006)
 - [Machine Learning](http://www.cs.cmu.edu/~tom/mlbook.html), Mitchell (1997).
 
-### Key challenge: Given task ke liye sahi algorithm dhundhna
+### The key challenge: Finding the right algorithm ke liye the given task
 
-Automated learning ka key challenge training data mein un patterns ko pehchanna hai jo model ki learning ko naye data par generalize karte samay meaningful hon. Aise badi sankhya mein potential patterns hain jinhe model pehchan sakta hai, jabki training data phenomena ke larger set ka sirf ek sample constitute karta hai jiska algorithm future mein task perform karte samay saamna kar sakta hai.
+The key challenge ka automated learning hai to identify patterns mein the training data that hain meaningful when generalizing the model's learning to new data. There hain a large number ka potential patterns that a model could identify, while the training data only constitutes a sample ka the larger set ka phenomena that the algorithm may encounter when performing the task mein the future. 
 
-### Supervised Learning: example se task sikhana
+### Supervised Learning: teaching a task by example
 
-Supervised learning ML ka sabse commonly used type hai. Hum is book ke zyadatar chapters is category ke applications ko dedicate karenge. Term 'supervised' ek outcome variable ki maujudgi imply karta hai jo learning process ko guide karta hai—yani, ye algorithm ko task ka sahi solution sikhata hai. Supervised learning ka maksad individual samples se functional input-output relationship capture karna hai jo is relationship ko reflect karte hain aur naye data ke baare mein valid statements dekar apni learning apply karna hai.
+Supervised learning hai the most commonly used type ka ML. hum will dedicate most ka the chapters mein this book to applications mein this category. The term supervised implies the presence ka an outcome variable that guides the learning process—that hai, it teaches the algorithm the correct solution to the task at hand. Supervised learning aims to capture a functional input-output relationship from individual samples that reflect this relationship aur to apply its learning by making valid statements about new data.
 
-### Unsupervised learning: Useful patterns pehchanne ke liye data explore karna
+### Unsupervised learning: Exploring data to identify useful patterns
 
-Unsupervised learning problem solve karte samay, hum sirf features observe karte hain aur outcome ka koi measurements nahi hota. Future outcomes predict karne ya variables ke beech relationships infer karne ke bajaye, unsupervised algorithms input mein wo structure pehchanne ka maksad rakhte hain jo data mein contained information ke naye representation ki anumati deta hai.
+When solving an unsupervised learning problem, hum only observe the features aur have no measurements ka the outcome. Instead ka predicting future outcomes or inferring relationships among variables, unsupervised algorithms aim to identify structure mein the input that permits a new representation ka the information contained mein the data. 
 
-#### Trading strategies ke liye use cases: Risk management se text processing tak
-Unsupervised learning ke liye kai trading use cases hain jinhe hum baad ke chapters mein cover karenge:
-- Similar risk aur return characteristics wali securities ko ek saath group karna (dekhein [Chapter 13 mein hierarchical risk parity](../13_unsupervised_learning/04_hierarchical_risk_parity)
-- [Principal component analysis](../13_unsupervised_learning/01_linear_dimensionality_reduction)) ya autoencoders ([Chapter 20](../20_autoencoders_for_conditional_risk_factors) ka use karke securities ki bahut badi sankhya ki performance drive karne wale risk factors ki small number dhundhna
-- Documents ki body mein (example ke liye, earnings call transcripts) latent topics pehchanna jo un documents ke sabse mahatvapurn aspects comprise karte hain ([Chapter 15](../15_topic_modeling))
+#### Use cases ke liye trading strategies: From risk management to text processing
+There hain numerous trading use cases ke liye unsupervised learning that hum will cover mein later chapters:
+- Grouping together securities ke saath similar risk aur return characteristics (see [hierarchical risk parity mein Chapter 13](../13_unsupervised_learning/04_hierarchical_risk_parity)
+- Finding a small number ka risk factors driving the performance ka a much larger number ka securities use karke [principal component analysis](../13_unsupervised_learning/01_linear_dimensionality_reduction)) or autoencoders ([Chapter 20](../20_autoencoders_for_conditional_risk_factors)
+- Identifying latent topics mein a body ka documents (ke liye example, earnings call transcripts) that comprise the most important aspects ka those documents ([Chapter 15](../15_topic_modeling))
 
-### Reinforcement learning: Karke seekhna, ek baar mein ek kadam
+### Reinforcement learning: Learning by doing, one step at a time
 
-Reinforcement learning (RL) ML ka teesra type hai. Ye ek agent par center karta hai jise environment dwara provide ki gayi information ke aadhar par har time step par ek action pick karne ki zarurat hoti hai. Agent ek self-driving car ho sakta hai, board game ya video game khelne wala program ho sakta hai, ya kisi certain security market mein operate karne wali trading strategy ho sakti hai.
+Reinforcement learning (RL) hai the third type ka ML. It centers on an agent that needs to pick an action at each time step based on information provided by the environment. The agent could be a self-driving car, a program playing a board game or a video game, or a trading strategy operating mein a certain security market. 
 
-Introduction ke liye [Sutton aur Barto](http://www.incompleteideas.net/book/the-book-2nd.html), 2018 dekhein.
+You find an excellent introduction mein [Sutton aur Barto](http://www.incompleteideas.net/book/the-book-2nd.html), 2018.
 
-## Machine Learning Workflow
+## The Machine Learning Workflow
 
-ML solution develop karne ke liye success ke chances maximize karne ke liye systematic approach ki zarurat hoti hai jabki efficiently aage badhna hota hai. Collaboration, maintenance, aur baad ke refinements ko aasan banane ke liye process ko transparent aur replicable banana bhi zaruri hai.
+Developing an ML solution requires a systematic approach to maximize the chances ka success while proceeding efficiently. It hai also important to make the process transparent aur replicable to facilitate collaboration, maintenance, aur subsequent refinements.
 
-Process throughout iterative hai, aur alag-alag stages par effort project ke hisab se vary karega. Fir bhi, is process mein aamtaur par nimnlikhit steps shamil hone chahiye:
+The process hai iterative throughout, aur the effort at different stages will vary according to the project. Nonethelesee, this process should generally include the following steps:
 
-1. Problem frame karein, target metric identify karein, aur success define karein
-2. Data source, clean, aur validate karein
-3. Apne data ko samjhein aur informative features generate karein
-4. Apne data ke liye suitable ek ya zyada machine learning algorithms pick karein
-5. Apne models Train, test, aur tune karein
-6. Original problem solve karne ke liye apne model ka use karein
+1. Frame the problem, identify a target metric, aur define success
+2. Source, clean, aur validate the data
+3. Understand your data aur generate informative features
+4. Pick one or more machine learning algorithms suitable ke liye your data
+5. Train, test, aur tune your models
+6. Use your model to solve the original problem
 
-### Code Example: K-nearest neighbors ke saath ML workflow
+### Code Example: ML workflow ke saath K-nearest neighbors
 
-Notebook [machine_learning_workflow](01_machine_learning_workflow.ipynb) mein kai examples hain jo house prices ke simple dataset ka use karke machine learning workflow illustrate karte hain.
+Notebook [machine_learning_workflow](01_machine_learning_workflow.ipynb) contain karta hai several examples that illustrate the machine learning workflow use karke a simple dataset ka house prices.
 
 - sklearn [Documentation](http://scikit-learn.org/stable/documentation.html)
 - k-nearest neighbors [tutorial](https://www.datacamp.com/community/tutorials/k-nearest-neighbor-classification-scikit-learn) aur [visualization](http://vision.stanford.edu/teaching/cs231n-demos/knn/)
 
-## Problem frame karein: goals aur metrics
+## Frame the problem: goals & metrics
 
-Kisi bhi machine learning exercise ke liye starting point ultimate use case hota hai jise ye address karne ka maksad rakhta hai. Kabhi-kabhi, ye goal variables ke beech association ya causal relationship identify karne ke liye statistical inference hoga. Halaanki, aksar, goal trading signal yield karne ke liye outcome ka direct prediction hoga.
+The starting point ke liye any machine learning exercise hai the ultimate use case it aims to address. Sometimes, this goal will be statistical inference mein order to identify an association between variables or even a causal relationship. Most frequently, however, the goal will be the direct prediction ka an outcome to yield a trading signal.
 
-## Data Collect aur prepare karein
+## Collect & prepare the data
 
-Humne market aur fundamental data ki sourcing [Chapter 2](../02_market_and_fundamental_data) mein, aur alternative data ke liye [Chapter 3](../03_alternative_data) mein address kiya tha. Hum in sources ke various examples ke saath kaam karna jari rakhenge jaise-jaise hum baad ke chapters mein various models ke application illustrate karenge.
+hum addressed the sourcing ka market aur fundamental data mein [Chapter 2](../02_market_and_fundamental_data), aur ke liye alternative data mein [Chapter 3](../03_alternative_data). hum will continue to work ke saath various examples ka these sources as hum illustrate the application ka the various models mein later chapters. 
 
-## Features ko kaise explore, extract aur engineer karein
+## How to explore, extract aur engineer features
 
-Individual variables ke distribution aur outcomes aur features ke beech relationships ko samajhna suitable algorithm pick karne ka aadhar hai. Ye aamtaur par visualizations jaise scatter plots se shuru hota hai, jaisa ki companion notebook mein illustrate kiya gaya hai (aur following image mein dikhaya gaya hai), lekin isme linear metrics, jaise correlation, se lekar nonlinear statistics, jaise Spearman rank correlation coefficient (jiska saamna humne information coefficient introduce karte samay kiya tha) tak numerical evaluations bhi shamil hain. Isme information-theoretic measures, jaise mutual information bhi shamil hain.
+Understanding the distribution ka individual variables aur the relationships among outcomes aur features hai the basis ke liye picking a suitable algorithm. Yeh typically starts ke saath visualizations such as scatter plots, as illustrated mein the companion notebook (aur shown mein the following image), but also includes numerical evaluations ranging from linear metrics, such as the correlation, to nonlinear statistics, such as the Spearman rank correlation coefficient that hum encountered when hum introduced the information coefficient. It also includes information-theoretic measures, such as mutual information
 
 ### Code Example: Mutual Information
 
-Notebook [mutual_information](02_mutual_information.ipynb) financial data par information theory apply karta hai jo humne chapter [Alpha Factors – Research and Evaluation]((../04_alpha_factor_research) mein notebook [feature_engineering](../04_alpha_factor_research/00_data/feature_engineering.ipynb) mein create kiya tha.
+Notebook [mutual_information](02_mutual_information.ipynb) applies information theory to the financial data hum created mein the notebook [feature_engineering](../04_alpha_factor_research/00_data/feature_engineering.ipynb), mein the chapter [Alpha Factors – Research aur Evaluation]((../04_alpha_factor_research).
 
-## ML algorithm select karein
+## Select an ML algorithm
 
-Is book ka shesh bhaag kai model families introduce karega, jo linear models (jo input aur output variables ke beech functional relationship ke nature ke baare mein kaafi strong assumptions banate hain) se lekar deep neural networks (jo bahut kam assumptions banate hain) tak range karte hain.
+The remainder ka this book will introduce several model families, ranging from linear models, which make fairly strong assumptions about the nature ka the functional relationship between input aur output variables, to deep neural networks, which make very few assumptions.
 
-## Model design aur tune karein
+## Design aur tune the model
 
-ML process mein model ke generalization error ke estimates ke aadhar par model complexity diagnose aur manage karne ke steps shamil hain. Unbiased estimate ke liye ek statistically sound aur efficient procedure ki zarurat hoti hai, saath hi error metrics jo output variable type ke saath align karein, jo ye bhi determine karta hai ki hum regression, classification, ya ranking problem ke saath deal kar rahe hain.
+The ML process includes steps to diagnose aur manage model complexity based on estimates ka the model's generalization error. An unbiased estimate requires a statistically sound aur efficient procedure, as well as error metrics that align ke saath the output variable type, which also determines whether hum hain dealing ke saath a regression, classification, or ranking problem.
 
 ### Code Example: Bias-Variance Trade-Off
 
-Naye input data ke liye outcomes predict karte samay ML model jo errors karta hai use reducible aur irreducible parts mein toda ja sakta hai. Irreducible part data mein random variation (noise) ki wajah se hota hai jo measure nahi kiya gaya hai, jaise relevant lekin missing variables ya natural variation.
+The errors that an ML model makes when predicting outcomes ke liye new input data can be broken down into reducible aur irreducible parts. The irreducible part hai due to random variation (noise) mein the data that hai not measured, such as relevant but missing variables or natural variation. 
 
-Notebook [bias_variance](03_bias_variance.ipynb) increasingly complex polynomials ka use karke cosine function approximate karke aur in-sample error measure karke overfitting demonstrate karta hai. Ye varying complexity ke polynomial seekhne ke liye kuch added noise (n = 30) ke saath 10 random samples draw karta hai. Har baar, model naye data points predict karta hai aur hum in predictions ke liye mean-squared error capture karte hain, saath hi in errors ka standard deviation bhi. Ye kuch added noise ke saath ninth degree ke cosine function ka Taylor series approximation seekhne ki koshish karke overfitting versus underfitting ke impact ko illustrate karne ke liye aage badhta hai. Following diagram mein, hum true function ke random samples draw karte hain aur polynomials fit karte hain jo underfit, overfit karte hain, aur flexibility ki approximately correct degree provide karte hain.
+Notebook [bias_variance](03_bias_variance.ipynb) demonstrate karta hai overfitting by approximating a cosine function use karke increasingly complex polynomials aur measuring the mein-sample error.  It draws 10 random samples ke saath some added noise (n = 30) to learn a polynomial ka varying complexity. Each time, the model predicts new data points aur hum capture the mean-squared error ke liye these predictions, as well as the standard deviation ka these errors. It goes on to illustrate the impact ka overfitting versus underfitting by trying to learn a Taylor series approximation ka the cosine function ka ninth degree ke saath some added noise. mein the following diagram, hum draw random samples ka the true function aur fit polynomials that underfit, overfit, aur provide an approximately correct degree ka flexibility.
 
-## Model selection ke liye cross-validation ka use kaise karein
+## How to use cross-validation ke liye model selection
 
-Jab aapke use case ke liye kai candidate models (yani, algorithms) available hote hain, to unme se ek ko chunne ke act ko model selection problem kaha jata hai. Model selection ka maksad us model ko identify karna hai jo naye data ko dekhte huye lowest prediction error produce karega.
+When several candidate models (that hai, algorithms) hain available ke liye your use case, the act ka choosing one ka them hai called the model selection problem. Model selection aims to identify the model that will produce the lowest prediction error given new data.
 
-### Code Example: Python mein cross-validation kaise implement karein
+### Code Example: How to implement cross-validation mein Python
 
-Script [cross_validation](04_cross_validation.py) ye dikhakar ki ten observations wale mock dataset ke indices train aur test set mein kaise assign kiye jate hain, data ko training aur test sets mein split karne ke various options illustrate karta hai.
+The script [cross_validation](04_cross_validation.py) illustrates various options ke liye splitting data into training aur test sets by showing how the indices ka a mock dataset ke saath ten observations hain assigned to the train aur test set.
  
-## Scikit-learn ke saath Parameter tuning
+## Parameter tuning ke saath scikit-learn
 
-Model selection mein aamtaur par alag-alag algorithms (jaise linear regression aur random forest) ya alag-alag configurations ka use karke models ki out-of-sample performance ka repeated cross-validation shamil hota hai. Alag-alag configurations mein hyperparameters mein changes ya alag-alag variables ka inclusion ya exclusion shamil ho sakta hai.
+Model selection typically involves repeated cross-validation ka the out-ka-sample performance ka models use karke different algorithms (such as linear regression aur random forest) or different configurations. Different configurations may involve changes to hyperparameters or the inclusion or exclusion ka different variables.
 
-### Code Example: Yellowbricks ke saath Learning aur Validation curves
+### Code Example: Learning aur Validation curves ke saath yellowbricks
 
-Notebook [machine_learning_workflow](01_machine_learning_workflow.ipynb)) various model selection techniques ke use ko illustrate karte huye learning aur validation curves ka use demonstrate karta hai.
+Notebook [machine_learning_workflow](01_machine_learning_workflow.ipynb)) demonstrate karta hai the use ka learning aur validation  illustrates the use ka various model selection techniques. 
 
 - Yellowbrick: Machine Learning Visualization [docs](http://www.scikit-yb.org/en/latest/)
 
-### Code Example: GridSearchCV aur pipeline ka use karke Parameter tuning
+### Code Example: Parameter tuning use karke GridSearchCV aur pipeline
 
-Kyunki hyperparameter tuning machine learning workflow ka ek key ingredient hai, isliye is process ko automate karne ke liye tools hain. sklearn library mein ek GridSearchCV interface shamil hai jo parallel mein parameters ke sabhi combinations ko cross-validate karta hai, result capture karta hai, aur automatically full dataset par cross-validation ke dauran best perform karne wale parameter setting ka use karke model train karta hai.
+Since hyperparameter tuning hai a key ingredient ka the machine learning workflow, there hain tools to automate this process. The sklearn library includes a GridSearchCV interface that cross-validates all combinations ka parameters mein parallel, captures the result, aur automatically trains the model use karke the parameter setting that performed best during cross-validation on the full dataset.
 
-Practice mein, training aur validation sets ko aksar cross-validation se pehle kuch processing ki zarurat hoti hai. Scikit-learn Pipeline offer karta hai taaki GridSearchCV dwara facilitated automated hyperparameter tuning mein kisi bhi requisite feature-processing steps ko bhi automate kiya ja sake.
+mein practice, the training aur validation sets often require some processing prior to cross-validation. Scikit-learn offers the Pipeline to also automate any requisite feature-processing steps mein the automated hyperparameter tuning facilitated by GridSearchCV.
 
-In tools ko action mein dekhne ke liye included machine_learning_workflow.ipynb notebook mein implementation examples dekhein.
+The implementation examples mein the included machine_learning_workflow.ipynb notebook to see these tools mein action.
 
-Notebook [machine_learning_workflow](01_machine_learning_workflow.ipynb)) bhi in tools ka use demonstrate karta hai.
+Notebook [machine_learning_workflow](01_machine_learning_workflow.ipynb)) also demonstrate karta hai the use ka these tools.
 
-## Finance mein cross-validation ke saath Challenges
+## Challenges ke saath cross-validation mein finance
 
-Ab tak charcha kiye gaye cross-validation methods ke liye ek key assumption training ke liye available samples ka independent and identical (iid) distribution hai.
-Financial data ke liye, aksar aisa nahi hota hai. Iske vipreet, financial data na to independently aur na hi identically distributed hota hai kyunki serial correlation aur time-varying standard deviation hota hai, jise heteroskedasticity bhi kaha jata hai.
+A key assumption ke liye the cross-validation methods discussed so far hai the independent aur identical (iid) distribution ka the samples available ke liye training.
+ke liye financial data, this hai often not the case. On the contrary, financial data hai neither independently nor identically distributed because ka serial correlation aur time-varying standard deviation, also known as heteroskedasticity
 
 ### Purging, embargoing, aur combinatorial CV
 
-Financial data ke liye, labels aksar overlapping data points se derive kiye jate hain kyunki returns multiple periods mein prices se compute kiye jate hain. Trading strategies ke sandarbh mein, model ke prediction ke results, jo asset mein position lena imply kar sakte hain, sirf baad mein pata chal sakte hain, jab ye decision evaluate kiya jata hai—example ke liye, jab position close out ki jati hai.
+ke liye financial data, labels hain often derived from overlapping data points as returns hain computed from prices mein multiple periods. mein the context ka trading strategies, the results ka a model's prediction, which may imply taking a position mein an asset, may only be known later, when this decision hai evaluated—ke liye example, when a position hai closed out. 
 
-Resulting risks mein test se training set mein information ka leaking shamil hai, jisse performance artificially inflated hone ki sambhavna hoti hai. Ise resolve karne ke liye ye ensure kiya jana chahiye ki saara data point-in-time ho—yani, vastav mein available ho aur us time par known ho jab ise model ke liye input ke roop mein use kiya ja raha ho. Marcos Lopez de Prado ne [Advances in Financial Machine Learning](https://www.amazon.com/Advances-Financial-Machine-Learning-Marcos/dp/1119482089) mein cross-validation ke liye financial data ke in challenges ko address karne ke liye kai methods propose kiye hain:
+The resulting risks include the leaking ka information from the test into the training set, likely leading to an artificially inflated performance that needs to be addressed by ensuring that all data hai point-mein-time—that hai, truly available aur known at the time it hai used as the input ke liye a model. Several methods have been proposed by Marcos Lopez de Prado mein [Advances mein Financial Machine Learning](https://www.amazon.com/Advances-Financial-Machine-Learning-Marcos/dp/1119482089) to address these challenges ka financial data ke liye cross-validation:
 
-- Purging: Un training data points ko eliminate karein jahan evaluation validation set mein point-in-time data point ke prediction ke baad hoti hai taaki look-ahead bias se bacha ja sake.
-- Embargoing: Un training samples ko aur eliminate karein jo test period ko follow karte hain.
+- Purging: Eliminate training data points where the evaluation occurs after the prediction ka a point-mein-time data point mein the validation set to avoid look-ahead bias.
+- Embargoing: Further eliminate training samples that follow a test period.

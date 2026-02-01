@@ -1,127 +1,158 @@
-# Market aur Fundamental Data: Sources aur Techniques
+# Market & Fundamental Data: Sources aur Techniques
 
-Data hamesha se trading ka ek zaruri driver raha hai, aur traders ne lambe samay se behtar information tak pahunch banakar fayda uthane ki koshish ki hai. Ye koshishein kam se kam un afwahon tak purani hain ki House of Rothschild ne Waterloo mein British jeet ke baare mein kabootaron (pigeons) ke zariye channel ke paar aayi khabar se bonds khareedkar bhaari munafa kamaya tha.
+Data has always been an essential driver ka trading, aur traders have long made efforts to gain an advantage from access to superior information. These efforts date back at least to the rumors that the House ka Rothschild benefited handsomely from bond purchases upon advance news about the British victory at Waterloo carried by pigeons across the channel.
 
-Aaj, tez data access mein nivesh (investment) leading **high-frequency trading** (HFT) firms ke Go West consortium ka roop le chuka hai jo Chicago Mercantile Exchange (CME) ko Tokyo se jodta hai. CME aur New York mein BATS exchanges ke beech round-trip latency (aane-jaane ka samay) theoretical limit eight milliseconds ke kareeb aa gayi hai kyunki traders arbitrage maukon ka fayda uthane ke liye muqabla karte hain. Saath hi, regulators aur exchanges ne 'speed bumps' shuru kiye hain jo trading ko dheema karte hain taaki information tak uneven access ke competition par padne wale bure asar ko seemit (limit) kiya ja sake.
+Today, investments mein faster data access take the shape ka the Go West consortium ka leading **high-frequency trading** (HFT) firms that connects the Chicago Mercantile Exchange (CME) ke saath Tokyo. The round-trip latency between the CME aur the BATS exchanges mein New York has dropped to close to the theoretical limit ka eight milliseconds as traders compete to exploit arbitrage opportunities. At the same time, regulators aur exchanges have started to introduce speed bumps that slow down trading to limit the adverse effects on competition ka uneven access to information.
 
-Paramparik taur par (traditionally), investors zyadatar **publicly available market aur fundamental data** par nirbhar rahe hain. Private datasets banane ya khareedne ki koshishein (jaise proprietary surveys ke zariye) seemit thin. Conventional strategies equity fundamentals par focus karti hain aur reported financials par financial models banati hain, inhe shayad industry ya macro data ke saath jodkar earnings per share aur stock prices project kiya jata hai. Vaikalpik roop se (alternatively), wo price aur volume information se compute kiye gaye indicators ka use karke market data se signals nikalne ke liye technical analysis ka labh uthate hain.
+Traditionally, investors mostly relied on **publicly available market aur fundamental data**.  Efforts to create or acquire private datasets, ke liye example through proprietary surveys, were limited. Conventional strategies focus on equity fundamentals aur build financial models on reported financials, possibly combined ke saath industry or macro data to project earnings per share aur stock prices. Alternatively, they leverage technical analysis to extract signals from market data use karke indicators computed from price aur volume information.
 
-**Machine learning (ML) algorithms** market aur fundamental data ko insani niyam aur heuristics ke mukable zyada kushalta se exploit karne ka wada karte hain, khaas taur par jab inhe alternative data (jo agle chapter ka topic hai) ke saath joda jata hai. Hum dikhayenge ki linear models se lekar recurrent neural networks (RNNs) tak ke ML algorithms ko market aur fundamental data par kaise apply karein aur tradeable signals generate karein.
+**Machine learning (ML) algorithms** promise to exploit market aur fundamental data more efficiently than human-defined rules aur heuristics, mein particular when combined ke saath alternative data, the topic ka the next chapter. hum will illustrate how to apply ML algorithms ranging from linear models to recurrent neural networks (RNNs) to market aur fundamental data aur generate tradeable signals.
 
-Ye chapter market aur fundamental data sources ko introduce karta hai aur samjhata hai ki wo us environment ko kaise reflect karte hain jisme wo banaye gaye hain. **Trading environment** ki details na sirf market data ke sahi interpretation ke liye mayne rakhti hain balki aapki strategy ke design aur execution, aur realistic backtesting simulations ke implementation ke liye bhi zaruri hain. Hum ye bhi dikhayenge ki Python ka use karke alag-alag sources se trading aur financial statement data ko kaise access karein aur unke saath kaam karein.
+Yeh chapter introduces market aur fundamental data sources aur explains how they reflect the environment mein which they hain created. The details ka the **trading environment** matter not only ke liye the proper interpretation ka market data but also ke liye the design aur execution ka your strategy aur the implementation ka realistic backtesting simulations. hum also illustrate how to access aur work ke saath trading aur financial statement data from various sources use karke Python. 
  
-## Vishay Soochi (Content)
+## Vishay-suchi (Content)
 
-1. [Market data trading environment ko reflect karta hai](#market-data-trading-environment-ko-reflect-karta-hai)
-    * [Market microstructure: Trading ki barikiyan (The nuts and bolts of trading)](#market-microstructure-trading-ki-barikiyan)
-2. [High-frequency market data ke saath kaam karna](#high-frequency-market-data-ke-saath-kaam-karna)
-    * [NASDAQ order book data ke saath kaise kaam karein](#nasdaq-order-book-data-ke-saath-kaise-kaam-karein)
-    * [Trades kaise communicate hoti hain: FIX protocol](#trades-kaise-communicate-hoti-hain-fix-protocol)
-    * [NASDAQ TotalView-ITCH data feed](#nasdaq-totalview-itch-data-feed)
+1. [Market data reflects the trading environment](#market-data-reflects-the-trading-environment)
+    * [Market microstructure: The nuts and bolts of trading](#market-microstructure-the-nuts-and-bolts-of-trading)
+2. [Working ke saath high-frequency market data](#working-ke saath-high-frequency-market-data)
+    * [How to work with NASDAQ order book data](#how-to-work-with-nasdaq-order-book-data)
+    * [How trades are communicated: The FIX protocol](#how-trades-are-communicated-the-fix-protocol)
+    * [The NASDAQ TotalView-ITCH data feed](#the-nasdaq-totalview-itch-data-feed)
         - [Code Example: Parsing and normalizing tick data ](#code-example-parsing-and-normalizing-tick-data-)
         - [Additional Resources](#additional-resources)
-    * [AlgoSeek minute bars: Equity quote aur trade data](#algoseek-minute-bars-equity-quote-aur-trade-data)
-        - [Consolidated feed se minute bars tak](#consolidated-feed-se-minute-bars-tak)
-        - [Code Example: AlgoSeek intraday data ko kaise process karein](#code-example-algoseek-intraday-data-ko-kaise-process-karein)
-3. [Market Data ke liye API Access](#market-data-ke-liye-api-access)
-    * [Pandas ka use karke Remote data access](#pandas-ka-use-karke-remote-data-access)
+    * [AlgoSeek minute bars: Equity quote and trade data](#algoseek-minute-bars-equity-quote-and-trade-data)
+        - [From the consolidated feed to minute bars](#from-the-consolidated-feed-to-minute-bars)
+        - [Code Example: How to process AlgoSeek intraday data](#code-example-how-to-process-algoseek-intraday-data)
+3. [API Access to Market Data](#api-access-to-market-data)
+    * [Remote data access using pandas](#remote-data-access-using-pandas)
     * [Code Examples](#code-examples)
     * [Data sources](#data-sources)
     * [Industry News](#industry-news)
-4. [Fundamental data ke saath kaise kaam karein](#fundamental-data-ke-saath-kaise-kaam-karein)
+4. [How to work ke saath Fundamental data](#how-to-work-ke saath-fundamental-data)
     * [Financial statement data](#financial-statement-data)
-    * [XBRL markup ka use karke Automated processing](#xbrl-markup-ka-use-karke-automated-processing)
-    * [Code Example: Fundamental data time series banana](#code-example-fundamental-data-time-series-banana)
-    * [Anya fundamental data sources](#anya-fundamental-data-sources)
-5. [Pandas ke saath Efficient data storage](#pandas-ke-saath-efficient-data-storage)
-    * [Code Example](#code-example-1)
+    * [Automated processing using XBRL markup](#automated-processing-using-xbrl-markup)
+    * [Code Example: Building a fundamental data time series](#code-example-building-a-fundamental-data-time-series)
+    * [Other fundamental data sources](#other-fundamental-data-sources)
+5. [Efficient data storage ke saath pandas](#efficient-data-storage-ke saath-pandas)
+    * [Code Example](#code-example)
  
-## Market data trading environment ko reflect karta hai
+## Market data reflects the trading environment
 
-Market data is baat ka product hai ki traders kisi financial instrument ke liye orders kaise place karte hain - seedhe ya intermediaries ke zariye un dher saare marketplaces mein se kisi par, aur unhe kaise process kiya jata hai aur demand aur supuly ko match karke prices kaise set ki jati hain. Natijan, data trading venues ke institutional environment ko reflect karta hai, jisme wo rules aur regulations shamil hain jo orders, trade execution, aur price formation ko govern karte hain. Global overview ke liye [Harris](https://global.oup.com/ushe/product/trading-and-exchanges-9780195144703?cc=us&lang=en&) (2003) dekhein aur US market par details ke liye [Jones](https://www0.gsb.columbia.edu/faculty/cjones/papers/2018.08.31%20US%20Equity%20Market%20Data%20Paper.pdf) (2018) dekhein.
+Market data hai the product ka how traders place orders ke liye a financial instrument directly or through intermediaries on one ka the numerous marketplaces aur how they hain processed aur how prices hain set by matching demand aur supply. As a result, the data reflects the institutional environment ka trading venues, including the rules aur regulations that govern orders, trade execution, aur price formation. See [Harris](https://global.oup.com/ushe/product/trading-aur-exchanges-9780195144703?cc=us&lang=en&) (2003) ke liye a global overview aur [Jones](https://www0.gsb.columbia.edu/faculty/cjones/papers/2018.08.31%20US%20Equity%20Market%20Data%20Paper.pdf) (2018) ke liye details on the US market.
 
-Algorithmic traders buy aur sell orders ke flow aur usse banne wale volume aur price statistics ko analyze karne ke liye algorithms (ML sahit) ka use karte hain. Iska maksad trade signals nikalna hota hai jo example ke liye, demand-supply dynamics ya kuch market participants ke behavior ki insights pakad sakein. Ye section un institutional features ko review karta hai jo backtest ke dauran trading strategy ke simulation par asar dalte hain, isse pehle ki hum actual tick data ke saath kaam karna shuru karein jo aise hi ek environment, yani NASDAQ dwara create kiya gaya hai.
+Algorithmic traders use algorithms, including ML, to analyze the flow ka buy aur sell orders aur the resulting volume aur price statistics to extract trade signals that capture insights into, ke liye example, demand-supply dynamics or the behavior ka certain market participants. Yeh section reviews institutional features that impact the simulation ka a trading strategy during a backtest before hum start working ke saath actual tick data created by one such environment, namely the NASDAQ.
 
-### Market microstructure: Trading ki barikiyan
+### Market microstructure: The nuts aur bolts ka trading
 
-Market microstructure study karta hai ki institutional environment trading process par kaise asar dalta hai aur outcomes ko kaise shape karta hai, jaise price discovery, bid-ask spreads aur quotes, intraday trading behavior, aur transaction costs. Ye financial research ke sabse tezi se badhne wale fields mein se ek hai, jise algorithmic aur electronic trading ke rapid development ne aage badhaya hai.
+Market microstructure studies how the institutional environment affects the trading process aur shapes outcomes like the price discovery, bid-ask spreads aur quotes, intraday trading behavior, aur transaction costs. It hai one ka the fastest-growing fields ka financial research, propelled by the rapid development ka algorithmic aur electronic trading.  
 
-Aaj, hedge funds in-house analysts ko sponsor karte hain taaki wo tezi se badalte, complex details ko track kar sakein aur best possible market prices par execution ensure kar sakein aur aisi strategies design kar sakein jo market frictions ka fayda uthayein. Ye section trading dwara generate kiye gaye data mein utarne se pehle key concepts ka brief overview deta hai, jaise alag-alag market places aur order types.
+Today, hedge funds sponsor mein-house analysts to track the rapidly evolving, complex details aur ensure execution at the best possible market prices aur design strategies that exploit market frictions. Yeh section provide karta hai a brief overview ka key concepts, namely different market places aur order types, before hum dive into the data generated by trading.
 
-### High-frequency market data ke saath kaam karna
+- [Trading aur Exchanges - Market Microstructure ke liye Practitioners](https://global.oup.com/ushe/product/trading-aur-exchanges-9780195144703?cc=us&lang=en&), Larry Harris, Oxford University Press, 2003
+- [Understanding the Market ke liye Us Equity Market Data](https://www0.gsb.columbia.edu/faculty/cjones/papers/2018.08.31%20US%20Equity%20Market%20Data%20Paper.pdf), Charles Jones, NYSE, 2018 
+- [World Federation ka Exchanges](https://www.world-exchanges.org/our-work/statistics)
+- [Econophysics ka Order-driven Markets](https://www.springer.com/gp/book/9788847017658), Abergel et al, 2011
+    - Presents the ideas and research from various communities (physicists, economists, mathematicians, financial engineers) on the  modelling and analyzing order-driven markets. Of primary interest in these studies are the mechanisms leading to the statistical regularities of price statistics. Results pertaining to other important issues such as market impact, the profitability of trading strategies, or mathematical models for microstructure effects, are also presented.
 
-Market data ki do categories US exchanges par listed hazaron companies ko cover karti hain jo Reg NMS ke tehat trade ki jati hain: Consolidated feed har trading venue se trade aur quote data combine karta hai, jabki har individual exchange additional activity information ke saath proprietary products offer karta hai.
+## Working ke saath high-frequency market data
 
-Is section mein, hum pehle NASDAQ dwara diya gaya proprietary order flow data prastut karenge jo orders, trades, aur usse banne wale prices ka actual stream darshaata hai jaise wo tick-by-tick basis par hote hain. Phir, hum dikhayenge ki irregular intervals par aane wale is continuous stream of data ko fixed duration ke bars mein kaise regularize karein. Aakhir mein, hum AlgoSeek ke equity minute bar data ko introduce karenge jisme consolidated trade aur quote information hoti hai. Har case mein, hum illustrate karenge ki Python ka use karke data ke saath kaise kaam karein taaki aap apni trading strategy ke liye in sources ka labh utha sakein.
+Two categories ka market data cover the thousands ka companies listed on US exchanges that hain traded under Reg NMS: The consolidated feed combines trade aur quote data from each trading venue, whereas each individual exchange offers proprietary products ke saath additional activity information ke liye that particular venue.
 
-### NASDAQ order book data ke saath kaise kaam karein
+mein this section, hum will first present proprietary order flow data provided by the NASDAQ that represents the actual stream ka orders, trades, aur resulting prices as they occur on a tick-by-tick basis. Then, hum demonstrate how to regularize this continuous stream ka data that arrives at irregular intervals into bars ka a fixed duration. Finally, hum introduce AlgoSeek’s equity minute bar data that contain karta hai consolidated trade aur quote information. mein each case, hum illustrate how to work ke saath the data use karke Python so you can leverage these sources ke liye your trading strategy.
 
-Market data ka main source order book hai, jo din bhar real-time mein update hoti rehti hai taaki trading ki saari activity dikhayi de sake. Exchanges aamtaur par ye data real-time service ke roop mein fee lekar dete hain lekin kuch purana (historical) data free mein bhi de sakte hain.
+### How to work ke saath NASDAQ order book data
 
-United States mein, stock markets teen tiers mein quotes dete hain, yani Level I, II aur III jo increasingly granular (barik) information aur capabilities dete hain:
-- Level I: real-time bid- aur ask-price information, jaisa ki dher saare online sources se available hota hai
-- Level II: specific market makers dwara bid aur ask prices ke baare mein information add karta hai, saath hi kisi equity ki liquidity ki behtar insight ke liye haal hi ke transactions ka size aur time bhi deta hai.
-- Level III: quotes enter ya change karne, orders execute karne, aur trades confirm karne ki kshamta add karta hai aur ye sirf market makers aur exchange member firms ke liye available hai. Level III quotes tak access registered brokers ko best execution requirements pura karne ki suvidha deta hai.
+The primary source ka market data hai the order book, which updates mein real-time throughout the day to reflect all trading activity. Exchanges typically offer this data as a real-time service ke liye a fee but may provide some historical data ke liye free. 
 
-Trading activity un dher saare messages mein dikhti hai jo market participants orders ke liye bhejte hain. Ye messages aamtaur par electronic Financial Information eXchange (FIX) communications protocol (jo securities transactions aur market data ke real-time exchange ke liye hota hai) ya phir exchange ke apne native protocol ke hisab se hote hain.
+mein the United States, stock markets provide quotes mein three tiers, namely Level I, II aur III that offer increasingly granular information aur capabilities:
+- Level I: real-time bid- aur ask-price information, as available from numerous online sources
+- Level II: adds information about bid aur ask prices by specific market makers as well as size aur time ka recent transactions ke liye better insights into the liquidity ka a given equity.
+- Level III: adds the ability to enter or change quotes, execute orders, aur confirm trades aur hai only available to market makers aur exchange member firms. Access to Level III quotes permits registered brokers to meet best execution requirements.
 
-### Trades kaise communicate hoti hain: FIX protocol
+The trading activity hai reflected mein numerous messages about orders sent by market participants. These messages typically conform to the electronic Financial Information eXchange (FIX) communications protocol ke liye real-time exchange ka securities transactions aur market data or a native exchange protocol. 
 
-Trading activity un dher saare messages mein dikhti hai jo market participants trade orders ke liye bhejte hain. Ye messages aamtaur par electronic Financial Information eXchange (FIX) communications protocol (jo securities transactions aur market data ke real-time exchange ke liye hota hai) ya phir exchange ke apne native protocol ke hisab se hote hain.
+- [The Limit Order Book](https://arxiv.org/pdf/1012.0349.pdf)
+- [Feature Engineering ke liye Mid-Price Prediction ke saath Deep Learning](https://arxiv.org/abs/1904.05384)
+- [Price jump prediction mein Limit Order Book](https://arxiv.org/pdf/1204.1381.pdf)
+- [Handling aur visualizing order book data](https://github.com/0b01/recurrent-autoencoder/blob/master/Visualizing%20order%20book.ipynb) by Ricky Han
 
-### NASDAQ TotalView-ITCH data feed
+### How trades hain communicated: The FIX protocol
 
-Halaanki FIX ka market share bahut bada hai, exchanges apne native protocols bhi offer karte hain. Nasdaq ek TotalView ITCH direct data-feed protocol deta hai jo subscribers ko equity instruments ke individual orders ko track karne ki suvidha deta hai - order lagne se lekar execute hone ya cancel hone tak.
+The trading activity hai reflected mein numerous messages about trade orders sent by market participants. These messages typically conform to the electronic Financial Information eXchange (FIX) communications protocol ke liye real-time exchange ka securities transactions aur market data or a native exchange protocol. 
 
-#### Code Example: Parsing aur normalizing tick data
+- [FIX Trading Standards](https://www.fixtrading.org/standards/)
+- Python: [Simplefix](https://github.com/da4089/simplefix)
+- C++ version: [quickfixengine](http://www.quickfixengine.org/)
+- Interactive Brokers [interface](https://www.interactivebrokers.com/en/index.php?f=4988)
 
-- Folder [NASDAQ TotalView ITCH Order Book](01_NASDAQ_TotalView-ITCH_Order_Book) mein ye code shamil hai:
-    - NASDAQ Total View sample tick data download karne ke liye,
-    - binary source data se messages parse karne ke liye,
-    - kisi diye gaye stock ke liye order book reconstruct karne ke liye,
-    - order flow data ko visualize karne ke liye,
-    - tick data ko normalize karne ke liye.
-- Binary Data services: `struct` [module](https://docs.python.org/3/library/struct.html)
+### The NASDAQ TotalView-ITCH data feed
+
+While FIX has a dominant large market share, exchanges also offer native protocols. The Nasdaq offers a TotalView ITCH direct data-feed protocol that allows subscribers to track individual orders ke liye equity instruments from placement to execution or cancellation.
+
+- The ITCH [Specifications](http://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf)
+- [Sample Files](ftp://emi.nasdaq.com/ITCH/)
+
+#### Code Example: Parsing aur normalizing tick data 
+
+- The folder [NASDAQ TotalView ITCH Order Book](01_NASDAQ_TotalView-ITCH_Order_Book) contain karta hai the notebooks to
+    - download NASDAQ Total View sample tick data,
+    - parse the messages from the binary source data
+    - reconstruct the order book for a given stock
+    - visualize order flow data
+    - normalize tick data
+- Binary Data services: the `struct` [module](https://docs.python.org/3/library/struct.html)
+ 
+#### Additional Resources
+ 
+ - Native exchange protocols [around the world](https://en.wikipedia.org/wiki/List_of_electronic_trading_protocols_
+ - [High-frequency trading mein a limit order book](https://www.math.nyu.edu/faculty/avellane/HighFrequencyTrading.pdf), Avellaneda aur Stoikov, Quantitative Finance, Vol. 8, No. 3, April 2008, 217–224
+ - [use karke a Simulator to Develop Execution Algorithms](http://www.math.ualberta.ca/~cfrei/PIMS/Almgren5.pdf), Robert Almgren, quantitative brokers, 2016
+ - [Backtesting Microstructure Strategies](https://rickyhan.com/jekyll/update/2019/12/22/how-to-simulate-market-microstructure.html), Ricky Han, 2019
+- [Optimal High-Frequency Market Making](http://stanford.edu/class/msande448/2018/Final/Reports/gr5.pdf), Fushimi et al, 2018
+- [Simulating aur analyzing order book data: The queue-reactive model](https://arxiv.org/pdf/1312.0563.pdf), Huan et al, 2014
+- [How does latent liquidity get revealed mein the limit order book?](https://arxiv.org/pdf/1808.09677.pdf), Dall’Amico et al, 2018
 
 ### AlgoSeek minute bars: Equity quote aur trade data
 
-AlgoSeek historical intraday data us quality par provide karta hai jo pehle sirf institutional investors ke liye available thi. AlgoSeek Equity bars user-friendly format mein ek bahut hi detailed intraday quote aur trade data dete hain jiska maksad intraday ML-driven strategies ko design aur backtest karna aasan banana hai. Jaisa ki hum dekhenge, data mein na sirf OHLCV information shamil hai balki bid-ask spread aur up aur down price moves wale ticks ki sankhya ki jaankari bhi shamil hai.
-AlgoSeek ne demonstration purpose ke liye 2013-2017 ke liye NASDAQ 100 stocks ke minute bar data ke samples provide karne ki kripa ki hai aur is data ka ek subset is book ke readers ke liye available karayega.
+AlgoSeek provide karta hai historical intraday data at the quality previously available only to institutional investors. The AlgoSeek Equity bars provide a very detailed intraday quote aur trade data mein a user-friendly format aimed at making it easy to design aur backtest intraday ML-driven strategies. As hum will see, the data includes not only OHLCV information but also information on the bid-ask spread aur the number ka ticks ke saath up aur down price moves, among others.
+AlgoSeek has been so kind as to provide samples ka minute bar data ke liye the NASDAQ 100 stocks from 2013-2017 ke liye demonstration purposes aur will make a subset ka this data available to readers ka this book.
 
-#### Consolidated feed se minute bars tak
+#### From the consolidated feed to minute bars
 
-AlgoSeek minute bars Securities Information Processor (SIP) dwara diye gaye data par based hain jo is section ki shuruwat mein bataye gaye consolidated feed ko manage karta hai. Aap documentation https://www.algoseek.com/data-drive.html par dekh sakte hain.
+AlgoSeek minute bars hain based on data provided by the Securities Information Processor (SIP) that manages the consolidated feed mentioned at the beginning ka this section. You can find the documentation at https://www.algoseek.com/data-drive.html.
 
 Quote aur trade data fields
-Minute bar data mein 54 fields tak hote hain. Bar ke open, high, low, aur close elements ke liye aath fields hain:
-- Bar aur corresponding trade ke liye timestamp
-- Prevailing bid-ask quote aur relevant trade ke liye price aur size
+The minute bar data contain up to 54 fields. There hain eight fields ke liye the open, high, low, aur close elements ka the bar, namely:
+- The timestamp ke liye the bar aur the corresponding trade 
+- The price aur the size ke liye the prevailing bid-ask quote aur the relevant trade
 
-Bar period ke liye volume information ke saath 14 data points bhi hain:
-- Shares ki sankhya aur corresponding trades
-- Trade volumes jo bid par ya usse niche, bid quote aur midpoint ke beech, midpoint par, midpoint aur ask quote ke beech, aur ask par ya usse upar huye, saath hi crosses ke liye bhi
-- Up- ya downticks ke saath trade huye shares ki sankhya, yani jab price badha ya gira, saath hi jab price change nahi hua, price movement ki pichli direction ke hisab se differentiated
+There hain also 14 data points ke saath volume information ke liye the bar period:
+- The number ka shares aur corresponding trades
+- The trade volumes at or below the bid, between the bid quote aur the midpoint, at the midpoint, between the midpoint aur the ask quote, aur at or above the ask, as well as ke liye crosses
+- The number ka shares traded ke saath up- or downticks, i.e., when the price rose or fell, as well as when the price did not change, differentiated by the previous direction ka price movement
 
-#### Code Example: AlgoSeek intraday data ko kaise process karein
+#### Code Example: How to process AlgoSeek intraday data
 
-Directory [algoseek_intraday](02_algoseek_intraday) mein AlgoSeek se sample data download karne ke liye instructions hain. 
+The directory [algoseek_intraday](02_algoseek_intraday) contain karta hai instructions on how to download sample data from AlgoSeek. 
 
-## Market Data ke liye API Access
+- This information will be made available shortly.
 
-Python ka use karke API ke zariye market data access karne ke liye kai options hain. Is chapter mein, hum pehle [`pandas`](https://pandas.pydata.org/) library mein built kuch sources prastut karenge. Phir hum trading platform [Quantopian](https://www.quantopian.com/posts), data provider [Quandl](https://www.quandl.com/) (12/2018 mein NASDAQ dwara acquired) aur backtesting library [`zipline`](https://github.com/quantopian/zipline) (jise hum book mein baad mein use karenge) ko briefly introduce karenge, aur tarah-tarah ke market data access karne ke liye kai additional options list karenge. Directory [data_providers](03_data_providers) mein kai notebooks hain jo in options ka upyog dikhate hain.
+## API Access to Market Data
 
-### Pandas ka use karke Remote data access
+There hain several options to access market data via API use karke Python. mein this chapter, hum first present a few sources built into the [`pandas`](https://pandas.pydata.org/) library. Then hum briefly introduce the trading platform [Quantopian](https://www.quantopian.com/posts), the data provider [Quandl](https://www.quandl.com/) (acquired by NASDAQ mein 12/2018) aur the backtesting library [`zipline`](https://github.com/quantopian/zipline) that hum will use later mein the book, aur list several additional options to access various types ka market data. The directory [data_providers](03_data_providers) contain karta hai several notebooks that illustrate the usage ka these options.
+
+### Remote data access use karke pandas
 
 - read_html [docs](https://pandas.pydata.org/pandas-docs/stable/)
-- [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies) se S&P 500 constituents
+- S&P 500 constituents from [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies)
 - `pandas-datareader`[docs](https://pandas-datareader.readthedocs.io/en/latest/index.html)
 
 ### Code Examples
 
-Folder [data providers](03_data_providers) mein alag-alag data providers use karne ke examples hain.
-1. [pandas DataReader](03_data_providers/01_pandas_datareader_demo.ipynb) ka use karke Remote data access
-2. [yfinance](03_data_providers/02_yfinance_demo.ipynb) ke saath market aur fundamental data Download karna
-3. [LOBSTER](03_data_providers/03_lobster_itch_data.ipynb) se Limit Order Tick Data Parse karna
+The folder [data providers](03_data_providers) contain karta hai examples to use various data providers.
+1. Remote data access use karke [pandas DataReader](03_data_providers/01_pandas_datareader_demo.ipynb)
+2. Downloading market aur fundamental data ke saath [yfinance](03_data_providers/02_yfinance_demo.ipynb)
+3. Parsing Limit Order Tick Data from [LOBSTER](03_data_providers/03_lobster_itch_data.ipynb)
 4. Quandl [API Demo](03_data_providers/04_quandl_demo.ipynb)
 5. Zipline [data access](03_data_providers/05_zipline_data_demo.ipynb)
 
@@ -141,58 +172,62 @@ Folder [data providers](03_data_providers) mein alag-alag data providers use kar
 - [Alpha Trading Labs](https://www.alphatradinglabs.com/)
 - [Tiingo](https://www.tiingo.com/) stock market tools
 
-## Fundamental data ke saath kaise kaam karein
+### Industry News
 
-Fundamental data un economic drivers se juda hai jo securities ki value determine karte hain. Data ka nature asset class par nirbhar karta hai:
-- Equities aur corporate credit ke liye, isme corporate financials ke saath-saath industry aur economy-wide data shamil hota hai.
-- Government bonds ke liye, isme international macro-data aur foreign exchange shamil hota hai.
-- Commodities ke liye, isme asset-specific supply-and-demand determinants shamil hote hain, jaise fasalon ke liye mausam ka data.
+- [Bloomberg aur Reuters lose data share to smaller rivals](https://www.ft.com/content/622855dc-2d31-11e8-9b4b-bc4b9f08f381), FT, 2018
 
-Hum US ke liye equity fundamentals par focus karenge, jahan data access karna aasan hai. Duniya bhar mein karib 13,000+ public companies hain jo 2 million pages ki annual reports aur 30,000+ hours ki earnings calls generate karti hain. Algorithmic trading mein, fundamental data aur is data se banaye gaye features ka use trade signals nikalne ke liye seedhe kiya ja sakta hai, example ke liye value indicators ke roop mein, aur ye predictive models (ML models sahit) ke liye ek zaruri input hote hain.
+## How to work ke saath Fundamental data
+
+Fundamental data pertains to the economic drivers that determine the value ka securities. The nature ka the data depends on the asset class:
+- ke liye equities aur corporate credit, it includes corporate financials as well as industry aur economy-wide data.
+- ke liye government bonds, it includes international macro-data aur foreign exchange.
+- ke liye commodities, it includes asset-specific supply-aur-demand determinants, such as weather data ke liye crops. 
+
+hum will focus on equity fundamentals ke liye the US, where data hai easier to access. There hain some 13,000+ public companies worldwide that generate 2 million pages ka annual reports aur 30,000+ hours ka earnings calls. mein algorithmic trading, fundamental data aur features engineered from this data may be used to derive trading signals directly, ke liye example as value indicators, aur hain an essential input ke liye predictive models, including machine learning models.
 
 ### Financial statement data
 
-Securities and Exchange Commission (SEC) sabhi US issuers, yani listed companies aur securities (mutual funds sahit), ke liye zaruri karta hai ki wo teen quarterly financial statements (Form 10-Q) aur ek annual report (Form 10-K) file karein. Iske alawa aur bhi kai regulatory filing requirements hoti hain.
+The Securities aur Exchange Commission (SEC) requires US issuers, that hai, listed companies aur securities, including mutual funds to file three quarterly financial statements (Form 10-Q) aur one annual report (Form 10-K), mein addition to various other regulatory filing requirements.
 
-1990s ki shuruwat se, SEC ne apne Electronic Data Gathering, Analysis, and Retrieval (EDGAR) system ke zariye in filings ko available karaya hai. Ye equity aur anya securities (jaise corporate credit) ke fundamental analysis ke liye primary data source hain, jahan value business prospects aur issuer ki financial health par nirbhar karti hai.
+Since the early 1990s, the SEC made these filings available through its Electronic Data Gathering, Analysis, aur Retrieval (EDGAR) system. They constitute the primary data source ke liye the fundamental analysis ka equity aur other securities, such as corporate credit, where the value depends on the business prospects aur financial health ka the issuer. 
 
-### XBRL markup ka use karke Automated processing
+### Automated processing use karke XBRL markup
 
-Jab se SEC ne XBRL introduce kiya hai, regulatory filings ka automated analysis bahut aasan ho gaya hai. XBRL business reports ke electronic representation aur exchange ke liye ek free, open, aur global standard hai. XBRL XML par based hai; ye [taxonomies](https://www.sec.gov/dera/data/edgar-log-file-data-set.html) par nirbhar karta hai jo report ke elements ka matlab define karti hain aur unhe tags se map karti hain jo electronic version mein corresponding information ko highlight karte hain. Aisi hi ek taxonomy US Generally Accepted Accounting Principles (GAAP) ko represent karti hai.
+Automated analysis ka regulatory filings has become much easier since the SEC introduced XBRL, a free, open, aur global standard ke liye the electronic representation aur exchange ka business reports. XBRL hai based on XML; it relies on [taxonomies](https://www.sec.gov/dera/data/edgar-log-file-data-set.html) that define the meaning ka the elements ka a report aur map to tags that highlight the corresponding information mein the electronic version ka the report. One such taxonomy represents the US Generally Accepted Accounting Principles (GAAP).
 
-SEC ne 2005 mein accounting scandals ke jawab mein voluntary XBRL filings shuru ki thi, aur 2009 se sabhi filers ke liye is format ko zaruri kar diya. Ab wo dusri regulatory filings ke liye bhi mandatory coverage bada raha hai. SEC ek website maintain karta hai jo current taxonomies ki list deti hai, jo alag-alag filings ke content ko shape karti hain aur specific items extract karne ke liye use ki ja sakti hain.
+The SEC introduced voluntary XBRL filings mein 2005 mein response to accounting scandals before requiring this format ke liye all filers since 2009 aur continues to expand the mandatory coverage to other regulatory filings. The SEC maintains a website that lists the current taxonomies that shape the content ka different filings aur can be used to extract specific items.
 
-SEC ko report kiye gaye fundamental data ko track aur access karne ke kai tarike hain:
-- [EDGAR Public Dissemination Service]((https://www.sec.gov/oit/announcement/public-dissemination-service-system-contact.html)) (PDS) ke hisse ke roop mein, accepted filings ki electronic feeds fee dekar available hain.
-- SEC har 10 minute mein [RSS feeds](https://www.sec.gov/structureddata/rss-feeds-submitted-filings) update karta hai, jo structured disclosure submissions list karti hain.
-- Automated processing ke liye FTP ke zariye sabhi filings retrieve karne ke liye public [index files](https://www.sec.gov/edgar/searchedgar/accessing-edgar-data.htm) hain.
-- Financial statement (aur notes) datasets mein sabhi financial statements aur accompanying notes se parsed XBRL data hota hai.
+There hain several avenues to track aur access fundamental data reported to the SEC:
+- Ke hisse ke roop mein the [EDGAR Public Dissemination Service]((https://www.sec.gov/oit/announcement/public-dissemination-service-system-contact.html)) (PDS), electronic feeds ka accepted filings hain available ke liye a fee. 
+- The SEC updates [RSS feeds](https://www.sec.gov/structureddata/rss-feeds-submitted-filings) every 10 minutes, which list structured disclosure submissions.
+- There hain public [index files](https://www.sec.gov/edgar/searchedgar/accessing-edgar-data.htm) ke liye the retrieval ka all filings through FTP ke liye automated processing.
+- The financial statement (aur notes) datasets contain parsed XBRL data from all financial statements aur the accompanying notes.
 
-SEC log files bhi publish karta hai jisme EDGAR filings ke liye [internet search traffic](https://www.sec.gov/dera/data/edgar-log-file-data-set.html) hota hai (SEC.gov ke zariye), halaanki isme cheh mahine ki deri (delay) hoti hai.
+The SEC also publishes log files containing the [internet search traffic](https://www.sec.gov/dera/data/edgar-log-file-data-set.html) ke liye EDGAR filings through SEC.gov, albeit ke saath a six-month delay.
 
-### Code Example: Fundamental data time series banana
+### Code Example: Building a fundamental data time series
 
-[Financial Statement and Notes](https://www.sec.gov/dera/data/financial-statement-and-notes-data-set.html) datasets mein data ka scope numeric data hota hai jo primary financial statements (Balance sheet, income statement, cash flows, changes in equity, aur comprehensive income) aur un statements ke footnotes se extract kiya jata hai. Data 2009 se available hai.
+The scope ka the data mein the [Financial Statement aur Notes](https://www.sec.gov/dera/data/financial-statement-aur-notes-data-set.html) datasets consists ka numeric data extracted from the primary financial statements (Balance sheet, income statement, cash flows, changes mein equity, aur comprehensive income) aur footnotes on those statements. The data hai available as early as 2009.
 
-Folder [04_sec_edgar](04_sec_edgar) mein notebook [edgar_xbrl](04_sec_edgar/edgar_xbrl.ipynb) hai jo EDGAR data ko XBRL format mein download aur parse karne ke liye hai, aur financial statement aur price data ko combine karke P/E ratio jaise fundamental metrics create karta hai.
+The folder [04_sec_edgar](04_sec_edgar) contain karta hai the notebook [edgar_xbrl](04_sec_edgar/edgar_xbrl.ipynb) to download aur parse EDGAR data mein XBRL format, aur create fundamental metrics like the P/E ratio by combining financial statement aur price data.
 
-### Anya fundamental data sources
+### Other fundamental data sources
 
-- [Compilation of macro resources by the Yale Law School](https://library.law.yale.edu/news/75-sources-economic-data-statistics-reports-and-commentary)
+- [Compilation ka macro resources by the Yale Law School](https://library.law.yale.edu/news/75-sources-economic-data-statistics-reports-aur-commentary)
 - [Capital IQ](www.capitaliq.com)
 - [Compustat](www.compustat.com)
 - [MSCI Barra](www.mscibarra.com)
 - [Northfield Information Services](www.northinfo.com)
 - [Quantitative Services Group](www.qsg.com)
 
-## Pandas ke saath Efficient data storage
+## Efficient data storage ke saath pandas
 
-Hum is book mein kai alag-alag data sets use karenge, aur efficiency aur performance ke liye main formats ko compare karna faydemand hai. Khaas taur par, hum inki tulna karte hain:
+hum'll be use karke many different data sets mein this book, aur it's worth comparing the main formats ke liye efficiency aur performance. mein particular, hum compare the following:
 
 - CSV: Comma-separated, standard flat text file format.
-- HDF5: Hierarchical data format, jo shuru mein National Center for Supercomputing mein develop kiya gaya tha, numerical data ke liye ek fast aur scalable storage format hai, jo PyTables library ka use karke pandas mein available hai.
-- Parquet: Ek binary, columnar storage format jo Apache Hadoop ecosystem ka hissa hai, efficient data compression aur encoding deta hai aur ise Cloudera aur Twitter dwara develop kiya gaya hai. Ye `pyarrow` library ke zariye pandas ke liye available hai, jise pandas ke original author Wes McKinney lead karte hain.
+- HDF5: Hierarchical data format, developed initially at the National Center ke liye Supercomputing, hai a fast aur scalable storage format ke liye numerical data, available mein pandas use karke the PyTables library.
+- Parquet: A binary, columnar storage format, part ka the Apache Hadoop ecosystem, that provide karta hai efficient data compression aur encoding aur has been developed by Cloudera aur Twitter. It hai available ke liye pandas through the pyarrow library, led by Wes McKinney, the original author ka pandas.
 
 ### Code Example
 
-Directory [05_storage_benchmark](05_storage_benchmark) mein notebook [storage_benchmark](05_storage_benchmark/storage_benchmark.ipynb) upar di gayi libraries ki performance ko compare karta hai.
+Notebook [storage_benchmark](05_storage_benchmark/storage_benchmark.ipynb) mein the directory [05_storage_benchmark](05_storage_benchmark) compares the performance ka the preceding libraries.

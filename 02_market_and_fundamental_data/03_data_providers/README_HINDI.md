@@ -1,27 +1,28 @@
-# 02 Market data ke liye API access
+# 02 API access to market data
 
-Python ka use karke API ke zariye market data access karne ke liye kai options hain.
+There hain several options to access market data via API use karke Python.
 
 ## pandas datareader
 
-Notebook [01_pandas_datareader_demo](01_pandas_datareader_demo.ipynb) (iska Hindi version `01_pandas_datareader_demo_HINDI.ipynb` bhi hai) pandas library mein built thode sources prastut karta hai.
-- `pandas` library read_html function ka use karke websites par dikhaye gaye data ko access karne mein madad karti hai
-- related `pandas-datareader` library ek standard interface ke zariye alag-alag data providers ke API endpoints tak pahunchne ki suvidha deti hai
+Notebook [01_pandas_datareader_demo](01_pandas_datareader_demo.ipynb) presents a few sources built into the pandas library. 
+- The `pandas` library enables access to data displayed on websites use karke the read_html function 
+- the related `pandas-datareader` library provide karta hai access to the API endpoints ka various data providers through a standard interface 
 
 ## yfinance: Yahoo! Finance market aur fundamental data 
 
-Notebook [yfinance_demo](02_yfinance_demo.ipynb) dikhata hai ki Yahoo! Finance se tarah-tarah ka data download karne ke liye yfinance ka use kaise karein. Ye library historical data API ke band (depreciation) ho jane ke bawajood website se data ko Pythonic API ke saath reliable aur efficient tarike se scrape karke kaam karti hai.
+Notebook [yfinance_demo](02_yfinance_demo.ipynb) shows how to use yfinance to download a variety ka data from Yahoo! Finance. The library works around the deprecation ka the historical data API by scraping data from the website mein a reliable, efficient way ke saath a Pythonic API.
 
 ## LOBSTER tick data
 
-Notebook [03_lobster_itch_data](03_lobster_itch_data.ipynb) LOBSTER (Limit Order Book System - The Efficient Reconstructor) dwara available karaye gaye order book data ka use dikhata hai. LOBSTER ek [online](https://lobsterdata.com/info/WhatIsLOBSTER.php) limit order book data tool hai jiska maksad aasan aur high-quality limit order book data dena hai.
+Notebook [03_lobster_itch_data](03_lobster_itch_data.ipynb) demonstrate karta hai the use ka order book data made available by LOBSTER (Limit Order Book System - The Efficient Reconstructor), an [online](https://lobsterdata.com/info/WhatIsLOBSTER.php) limit order book data tool that aims to provide easy-to-use, high-quality limit order book data.
 
-2013 se LOBSTER academic community ke liye data provider ke roop mein kaam kar raha hai, aur NASDAQ par trade hone wake sabhi stocks ke liye reconstructed limit order book data deta hai. Haal hi mein, isne commercial service dena bhi shuru kiya hai.
+Since 2013 LOBSTER acts as a data provider ke liye the academic community, giving access to reconstructed limit order book data ke liye the entire universe ka NASDAQ traded stocks. More recently, it started offering a commercial service.
 
-## Quandl
+## Qandl
 
-Notebook [03_quandl_demo](03_quandl_demo.ipynb) dikhata hai ki Quandl apne free aur premium data ko available karane ke liye bahut hi seedha (straightforward) API use karta hai. Zyada jaankari ke liye [documentation](https://www.quandl.com/tools/api) dekhein.
+Notebook [03_quandl_demo](03_quandl_demo.ipynb) shows how Quandl use karta hai a very straightforward API to make its free aur premium data available. See [documentation](https://www.quandl.com/tools/api) ke liye more details.
 
-## zipline & Quantopian
+## zipline & Qantopian
 
-Notebook [zipline_data](05_zipline_data_demo.ipynb) backtesting library `zipline` ka brief introduction deta hai jiska use hum is book mein karenge, aur dikhata hai ki backtest chalate waqt stock price data ko kaise access karein. Installation ke liye kripya instructions [yahan](../../installation) dekhein.
+Notebook [contain karta hai the notebook [zipline_data](05_zipline_data.ipynb) briefly introduces the backtesting library `zipline` that hum will use throughout this book aur show how to access stock price data while running a backtest. ke liye installation please refer to the instructions [here](../../installation).
+

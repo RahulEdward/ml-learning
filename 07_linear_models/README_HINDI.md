@@ -1,139 +1,140 @@
-# Linear Models: Risk Factors se Asset Return Forecasts tak
+# Linear Models: From Risk Factors to Asset Return Forecasts
 
-Linear models ki family sabse useful hypothesis classes mein se ek represent karti hai. Algorithmic trading mein widely apply kiye jane wale kai learning algorithms linear predictors par bharosa karte hain kyunki unhe efficiently train kiya ja sakta hai, noisy financial data ke prati relatively robust hote hain aur finance ki theory se strong links rakhte hain. Linear predictors intuitive bhi hote hain, interpret karne mein aasan hote hain, aur aksar data ko reasonably well fit karte hain ya kam se kam ek accha baseline provide karte hain.
+The family ka linear models represents one ka the most useful hypothesis classes. Many learning algorithms that hain widely applied mein algorithmic trading rely on linear predictors because they can be efficiently trained, hain relatively robust to noisy financial data aur have strong links to the theory ka finance. Linear predictors hain also intuitive, easy to interpret, aur often fit the data reasonably well or at least provide a good baseline.
 
-Linear regression 200 saal se zyada samay se jana jata hai jab se Legendre aur Gauss ne ise astronomy par apply kiya aur iski statistical properties analyze karna shuru kiya. Tab se numerous extensions ne linear regression model aur uske parameters seekhne ke liye baseline ordinary least squares (OLS) method ko adapt kiya hai:
+Linear regression has been known ke liye over 200 years since Legendre aur Gauss applied it to astronomy aur began to analyze its statistical properties. Numerous extensions have since adapted the linear regression model aur the baseline ordinary least squares (OLS) method to learn its parameters:
 
-- **Generalized linear models** (GLM) un response variables ki anumati dekar applications ka scope badhate hain jo normal distribution ke alawa koi aur error distribution imply karte hain. GLMs mein categorical response variables ke liye probit ya logistic models shamil hain jo classification problems mein dikhayi dete hain.
-- Zyada **robust estimation methods** wahan statistical inference ki suvidha dete hain jahan data baseline assumptions ko violate karta hai, example ke liye, samay ke saath correlation ya observations ke aar-paar. Ye aksar panel data ke saath hota hai jisme same units par repeated observations hote hain jaise assets ke universe par historical returns.
-- **Shrinkage methods** linear models ki predictive performance improve karne ka maksad rakhte hain. Wo ek complexity penalty use karte hain jo model ke variance ko kam karne aur out-of-sample predictive performance improve karne ke goal ke saath model dwara seekhe gaye coefficients ko bias karta hai.
+- **Generalized linear models** (GLM) expand the scope ka applications by allowing ke liye response variables that imply an error distribution other than the normal distribution. GLMs include the probit or logistic models ke liye categorical response variables that appear mein classification problems.
+- More **robust estimation methods** enable statistical inference where the data violates baseline assumptions due to, ke liye example, correlation over time or across observations. Yeh hai often the case ke saath panel data that contain karta hai repeated observations on the same units such as historical returns on a universe ka assets.
+- **Shrinkage methods** aim to improve the predictive performance ka linear models. They use a complexity penalty that biases the coefficients learned by the model ke saath the goal ka reducing the model's variance aur improving out-ka-sample predictive performance.
 
-Practice mein, linear models inference aur prediction ke goals ke saath regression aur classification problems par apply kiye jate hain. Academic aur industry researchers dwara numerous asset pricing models develop kiye gaye hain jo linear regression ka labh uthate hain. Applications mein significant factors ki pehchan shamil hai jo better risk aur performance management ke liye asset returns drive karte hain, saath hi various time horizons par returns ka prediction bhi. Dusri taraf, classification problems mein directional price forecasts shamil hain. Is chapter mein, hum nimnlikhit vishayon ko cover karenge:
+mein practice, linear models hain applied to regression aur classification problems ke saath the goals ka inference aur prediction. Numerous asset pricing models have been developed by academic aur industry researchers that leverage linear regression. Applications include the identification ka significant factors that drive asset returns ke liye better risk aur performance management, as well as the prediction ka returns over various time horizons. Classification problems, on the other hand, include directional price forecasts. hai chapter mein, hum cover karenge the following topics:
 
-## Vishay Soochi (Content)
+## Vishay-suchi (Content)
 
-1. [Linear regression: Inference se prediction tak](#linear-regression-inference-se-prediction-tak)
-2. [Baseline model: Multiple linear regression](#baseline-model-multiple-linear-regression)
-    * [Code Example: `statsmodels` aur `scikit-learn` ke saath Simple aur multiple linear regression](#code-example-statsmodels-aur-scikit-learn-ke-saath-simple-aur-multiple-linear-regression)
-3. [Linear factor model kaise banayein](#linear-factor-model-kaise-banayein)
-    * [CAPM se Fama—French five-factor model tak](#capm-se-famafrench-five-factor-model-tak)
-    * [Risk factors prapt karna](#risk-factors-prapt-karna)
+1. [Linear regression: From inference to prediction](#linear-regression-from-inference-to-prediction)
+2. [The baseline model: Multiple linear regression](#the-baseline-model-multiple-linear-regression)
+    * [Code Example: Simple and multiple linear regression with `statsmodels` and `scikit-learn`](#code-example-simple-and-multiple-linear-regression-with-statsmodels-and-scikit-learn)
+3. [How to build a linear factor model](#how-to-build-a-linear-factor-model)
+    * [From the CAPM to the Fama—French five-factor model](#from-the-capm-to-the-famafrench-five-factor-model)
+    * [Obtaining the risk factors](#obtaining-the-risk-factors)
     * [Code Example: Fama—Macbeth regression](#code-example-famamacbeth-regression)
-4. [Shrinkage methods: Linear regression ke liye Regularization](#shrinkage-methods-linear-regression-ke-liye-regularization)
-    * [Overfitting ke khilaf Hedging – linear models mein regularization](#overfitting-ke-khilaf-hedging-linear-models-mein-regularization)
+4. [Shrinkage methods: Regularization ke liye linear regression](#shrinkage-methods-regularization-ke liye-linear-regression)
+    * [Hedging against overfitting – regularization in linear models](#hedging-against-overfitting--regularization-in-linear-models)
     * [Ridge regression](#ridge-regression)
     * [Lasso regression](#lasso-regression)
-5. [Linear regression ke saath stock returns kaise predict karein](#linear-regression-ke-saath-stock-returns-kaise-predict-karein)
-    * [Code Examples: stock returns ke liye inference aur prediction](#code-examples-stock-returns-ke-liye-inference-aur-prediction)
+5. [How to predict stock returns ke saath linear regression](#how-to-predict-stock-returns-ke saath-linear-regression)
+    * [Code Examples: inference and prediction for stock returns ](#code-examples-inference-and-prediction-for-stock-returns-)
 6. [Linear classification](#linear-classification)
-    * [Logistic regression model](#logistic-regression-model)
-    * [Code Example: statsmodels ke saath inference kaise conduct karein](#code-example-statsmodels-ke-saath-inference-kaise-conduct-karein)
-    * [Code examples: prediction ke liye logistic regression ka use kaise karein](#code-examples-prediction-ke-liye-logistic-regression-ka-use-kaise-karein)
+    * [The logistic regression model](#the-logistic-regression-model)
+    * [Code Example: how to conduct inference with statsmodels](#code-example-how-to-conduct-inference-with-statsmodels)
+    * [Code examples: how to use logistic regression for prediction](#code-examples-how-to-use-logistic-regression-for-prediction)
 7. [References](#references)
 
-## Linear regression: Inference se prediction tak
 
-Ye section linear models ke liye baseline cross-section aur panel techniques introduce karta hai aur important enhancements jo accurate estimates produce karte hain jab key assumptions violate ho jate hain. Ye in methods ko factor models (jo algorithmic trading strategies ke development mein ubiquitous hain) estimate karke illustrate karna jari rakhta hai. Ant mein, ye regularization methods par focus karta hai.
+## Linear regression: From inference to prediction
+
+Yeh section introduces the baseline cross-section aur panel techniques ke liye linear models aur important enhancements that produce accurate estimates when key assumptions hain violated. It continues to illustrate these methods by estimating factor models that hain ubiquitous mein the development ka algorithmic trading strategies. Lastly, it focuses on regularization methods.
 
 - [Introductory Econometrics](http://economics.ut.ac.ir/documents/3030266/14100645/Jeffrey_M._Wooldridge_Introductory_Econometrics_A_Modern_Approach__2012.pdf), Wooldridge, 2012
 
-## Baseline model: Multiple linear regression
+## The baseline model: Multiple linear regression
 
-Ye section model ke specification aur objective function, uske parameters seekhne ke methods, statistical assumptions jo inference aur in assumptions ke diagnostics ki anumati dete hain, saath hi model ko un situations mein adapt karne ke liye extensions introduce karta hai jahan ye assumptions fail ho jate hain. Content mein shamil hain:
+Yeh section introduces the model's specification aur objective function, methods to learn its parameters, statistical assumptions that allow ke liye inference aur diagnostics ka these assumptions, as well as extensions to adapt the model to situations where these assumptions fail. Content includes:
 
-- Model ko kaise formulate aur train karein
-- Gauss-Markov Theorem
-- Statistical inference kaise conduct karein
-- Problems ko kaise diagnose aur remedy karein
-- Practice mein linear regression kaise run karein
+- How to formulate aur train the model
+- The Gauss-Markov Theorem
+- How to conduct statistical inference
+- How to diagnose aur remedy problems
+- How to run linear regression mein practice
 
-### Code Example: `statsmodels` aur `scikit-learn` ke saath Simple aur multiple linear regression
+### Code Example: Simple aur multiple linear regression ke saath `statsmodels` aur `scikit-learn`
 
-Notebook [linear_regression_intro](01_linear_regression_intro.ipynb) simple aur multiple linear regression model demonstrate karta hai, baad wala `statsmodels` aur `scikit-learn` par based OLS aur gradient descent dono ka use karta hai.
+Notebook [linear_regression_intro](01_linear_regression_intro.ipynb) demonstrate karta hai the simple aur multiple linear regression model, the latter use karke both OLS aur gradient descent based on `statsmodels` aur `scikit-learn`. 
 
-## Linear factor model kaise banayein
+## How to build a linear factor model
 
-Algorithmic trading strategies asset ke return aur risk ke un sources (jo in returns ke main drivers represent karte hain) ke beech relationship ko quantify karne ke liye linear factor models ka use karti hain. Har factor risk ek premium carry karta hai, aur total asset return ke in risk premia ke weighted average ke correspond hone ki umeed ki ja sakti hai.
+Algorithmic trading strategies use linear factor models to quantify the relationship between the return ka an asset aur the sources ka risk that represent the main drivers ka these returns. Each factor risk carries a premium, aur the total asset return can be expected to correspond to a weighted average ka these risk premia.
 
-### CAPM se Fama—French five-factor model tak
+### From the CAPM to the Fama—French five-factor model
 
-Risk factors quantitative models ke lie ek key ingredient rahe hain jab se Capital Asset Pricing Model (CAPM) ne ek single factor, risk-free rate ke upar overall market ke expected excess return ke respective exposure ka use karke sabhi assets ke expected returns explain kiye.
+Risk factors have been a key ingredient to quantitative models since the Capital Asset Pricing Model (CAPM) explained the expected returns ka all assets use karke their respective exposure to a single factor, the expected excess return ka the overall market over the risk-free rate.
 
-Ye classic fundamental analysis (a la Dodd aur Graham) se alag hai jahan returns firm characteristics par depend karte hain. Rationale ye hai ki, aggregate mein, investors diversification ke zariye is so-called systematic risk ko eliminate nahi kar sakte. Isliye, equilibrium mein, unhe apni systematic risk ke anurup asset hold karne ke liye compensation ki zarurat hoti hai. Model imply karta hai ki, efficient markets ko dekhte huye jahan prices turant sabhi public information reflect karti hain, koi superior risk-adjusted returns nahi hone chahiye.
+Yeh differs from classic fundamental analysis a la Dodd aur Graham where returns depend on firm characteristics. The rationale hai that, mein the aggregate, investors cannot eliminate this so-called systematic risk through diversification. Hence, mein equilibrium, they require compensation ke liye holding an asset commensurate ke saath its systematic risk. The model implies that, given efficient markets where prices immediately reflect all public information, there should be no superior risk-adjusted returns.
 
-### Risk factors prapt karna
+### Obtaining the risk factors
 
-[Fama—French risk factors](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) un diversified portfolios par return difference ke roop mein compute kiye jate hain jinki values given risk factor ko reflect karne wale metrics ke hisab se high ya low hoti hain. Ye returns stocks ko in metrics ke hisab se sort karke aur fir certain percentile se upar stocks ko long karke jabki certain percentile se niche stocks ko short karke prapt kiye jate hain. Risk factors se jude metrics nimnlikhit define kiye gaye hain:
+The [Fama—French risk factors](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) hain computed as the return difference on diversified portfolios ke saath high or low values according to metrics that reflect a given risk factor. These returns hain obtained by sorting stocks according to these metrics aur then going long stocks above a certain percentile while shorting stocks below a certain percentile. The metrics associated ke saath the risk factors hain defined as follows:
 
-- Size: Market Equity (ME)
-- Value: Book Value of Equity (BE) divided by ME
-- Operating Profitability (OP): Revenue minus cost of goods sold/assets
+- Size: Market Equity (ME) 
+- Value: Book Value ka Equity (BE) divided by ME
+- Operating Profitability (OP): Revenue minus cost ka goods sold/assets
 - Investment: Investment/assets
 
-Fama aur French updated risk factor aur research portfolio data apni [website]((http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html)) ke madhyam se available karate hain, aur aap data prapt karne ke liye [pandas_datareader](https://pandas-datareader.readthedocs.io/en/latest/) library ka use kar sakte hain.
+Fama aur French make updated risk factor aur research portfolio data available through their [website]((http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html)), aur you can use the [pandas_datareader](https://pandas-datareader.readthedocs.io/en/latest/) library to obtain the data. 
 
 ### Code Example: Fama—Macbeth regression
 
-Residuals ke correlation se hone wali inference problem ko address karne ke liye, Fama aur MacBeth ne factors par returns ke cross-sectional regression ke liye ek two-step methodology propose kiya. Two-stage Fama—Macbeth regression market dwara kisi particular risk factor ke exposure ke liye reward kiye gaye premium ko estimate karne ke liye design kiya gaya hai. Two stages mein shamil hain:
-- **First stage**: N time-series regression, har asset ya portfolio ke liye ek, factor loadings estimate karne ke liye factors par iske excess returns ka.
-- **Second stage**: T cross-sectional regression, har time period ke liye ek, risk premium estimate karne ke liye.
+To address the inference problem caused by the correlation ka the residuals, Fama aur MacBeth proposed a two-step methodology ke liye a cross-sectional regression ka returns on factors. The two-stage Fama—Macbeth regression hai designed to estimate the premium rewarded ke liye the exposure to a particular risk factor by the market. The two stages consist ka:
+- **First stage**: N time-series regression, one ke liye each asset or portfolio, ka its excess returns on the factors to estimate the factor loadings.
+- **Second stage**: T cross-sectional regression, one ke liye each time period, to estimate the risk premium.
 
-Notebook [fama_macbeth](02_fama_macbeth.ipynb) illustrate karta hai ki Fama-Macbeth regression kaise run karein, jisme [LinearModels](https://bashtage.github.io/linearmodels/doc/) library ka use shamil hai.
+Notebook [fama_macbeth](02_fama_macbeth.ipynb) illustrates how to run a Fama-Macbeth regression, including use karke the [LinearModels](https://bashtage.github.io/linearmodels/doc/) library.
 
-## Shrinkage methods: Linear regression ke liye Regularization
+## Shrinkage methods: Regularization ke liye linear regression
 
-Jab ek linear regression model mein kai correlated variables hote hain, to unke coefficients poorly determined honge kyunki RSS par ek large positive coefficient ka effect correlated variable par similarly large negative coefficient dwara cancel kiya ja sakta hai. Isliye, model mein coefficients ke is wiggle room ki wajah se high variance ki tendency hogi jo is risk ko badhata hai ki model sample par overfit karega.
+When a linear regression model contain karta hai many correlated variables, their coefficients will be poorly determined because the effect ka a large positive coefficient on the RSS can be canceled by a similarly large negative coefficient on a correlated variable. Hence, the model will have a tendency ke liye high variance due to this wiggle room ka the coefficients that increases the risk that the model overfits to the sample.
 
-### Overfitting ke khilaf Hedging – regularization in linear models
+### Hedging against overfitting – regularization mein linear models
 
-Overfitting ko control karne ke liye ek popular technique regularization hai, jisme coefficients ko large values tak pahunchne se discourage karne ke liye error function mein ek penalty term add karna shamil hai. Dusre shabdon mein, coefficients par size constraints out-of-sample predictions par hone wale potentially negative impact ko kam kar sakte hain. Hum sabhi models ke liye regularization methods ka saamna karenge kyunki overfitting ek aisi pervasive problem hai.
+One popular technique to control overfitting hai that ka regularization, which involves the addition ka a penalty term to the error function to discourage the coefficients from reaching large values. mein other words, size constraints on the coefficients can alleviate the resultant potentially negative impact on out-ka-sample predictions. hum will encounter regularization methods ke liye all models since overfitting hai such a pervasive problem.
 
-Is section mein, hum shrinkage methods introduce karenge jo ab tak charcha kiye gaye linear models ke approaches par improve karne ke liye do motivations address karte hain:
-- Prediction accuracy: Least squares estimates ka low bias lekin high variance suggest karta hai ki generalization error ko kuch coefficients ko shrink karke ya zero set karke kam kiya ja sakta hai, jisse model ke variance mein kami ke liye slightly higher bias trade off kiya ja sakta hai.
-- Interpretation: Badi sankhya mein predictors results ki big picture ke interpretation ya communication ko complicate kar sakte hain. Model ko strongest effects wale parameters ke smaller subset tak limit karne ke liye kuch detail sacrifice karna preferable ho sakta hai.
+mein this section, hum will introduce shrinkage methods that address two motivations to improve on the approaches to linear models discussed so far:
+- Prediction accuracy: The low bias but high variance ka least squares estimates suggests that the generalization error could be reduced by shrinking or setting some coefficients to zero, thereby trading off a slightly higher bias ke liye a reduction mein the variance ka the model.
+- Interpretation: A large number ka predictors may complicate the interpretation or communication ka the big picture ka the results. It may be preferable to sacrifice some detail to limit the model to a smaller subset ka parameters ke saath the strongest effects.
 
 ### Ridge regression
 
-Ridge regression objective function mein ek penalty add karke regression coefficients ko shrink karta hai jo squared coefficients ke sum ke barabar hoti hai, jo badle mein coefficient vector ke L2 norm ke correspond hoti hai.
+The ridge regression shrinks the regression coefficients by adding a penalty to the objective function that equals the sum ka the squared coefficients, which mein turn corresponds to the L2 norm ka the coefficient vector.
 
 ### Lasso regression
 
-Lasso (jise signal processing mein basis pursuit ke roop mein jana jata hai) residuals ke squares ke sum mein penalty add karke bhi coefficients ko shrink karta hai, lekin lasso penalty ka effect thoda alag hota hai. Lasso penalty coefficient vector ki absolute values ka sum hai, jo iske L1 norm ke correspond hoti hai.
+The lasso, known as basis pursuit mein signal processing, also shrinks the coefficients by adding a penalty to the sum ka squares ka the residuals, but the lasso penalty has a slightly different effect. The lasso penalty hai the sum ka the absolute values ka the coefficient vector, which corresponds to its L1 norm.
 
-## Linear regression ke saath stock returns kaise predict karein
+## How to predict stock returns ke saath linear regression
 
-Is section mein, hum returns predict karne aur trading signals generate karne ke liye shrinkage ke saath aur bina shrinkage ke linear regression ka use karenge. Is maksad ke liye, hum pehle ek dataset create karte hain aur fir statsmodels aur sklearn ke saath unka usage illustrate karne ke liye pichle section mein charcha kiye gaye linear regression models apply karte hain.
+mein this section, hum will use linear regression ke saath aur without shrinkage to predict returns aur generate trading signals. To this end, hum first create a dataset aur then apply the linear regression models discussed mein the previous section to illustrate their usage ke saath statsmodels aur sklearn.
 
-### Code Examples: stock returns ke liye inference aur prediction
+### Code Examples: inference aur prediction ke liye stock returns 
 
-- Notebook [preparing_the_model_data](03_preparing_the_model_data.ipynb) US equities ka ek universe select karta hai aur daily returns predict karne ke liye kai features create karta hai.
-- Notebook [statistical_inference_of_stock_returns_with_statsmodels](04_statistical_inference_of_stock_returns_with_statsmodels.ipynb) OLS aur `statsmodels` library ka use karke kai linear regression models estimate karta hai.
-- Notebook [predicting_stock_returns_with_linear_regression](05_predicting_stock_returns_with_linear_regression.ipynb) dikhata hai ki linear regression ke saath-saath `scikit-klearn` ke saath ridge aur lasso models ka use karke daily stock return kaise predict karein.
-- Notebook [evaluating_signals_using_alphalens](06_evaluating_signals_using_alphalens.ipynb) `alphalens` ka use karke model predictions evaluate karta hai.
+- Notebook [preparing_the_model_data](03_preparing_the_model_data.ipynb) selects a universe ka US equities aur create karta hai several features to predict daily returns.
+- Notebook [statistical_inference_of_stock_returns_with_statsmodels](04_statistical_inference_of_stock_returns_with_statsmodels.ipynb) estimates several linear regression models use karke OLS aur the `statsmodels` library.
+- Notebook [predicting_stock_returns_with_linear_regression](05_predicting_stock_returns_with_linear_regression.ipynb) shows how to predict daily stock return use karke linear regression, as well as ridge aur lasso models ke saath  `scikit-klearn`.
+- Notebook [evaluating_signals_using_alphalens](06_evaluating_signals_using_alphalens.ipynb) evaluates the model predictions use karke `alphalens`.
 
 ## Linear classification
 
-Qualitative response predict karne ke liye kai alag-alag classification techniques hain. Is section mein, hum widely used logistic regression introduce karenge jo linear regression se closely related hai. Hum agle chapters mein zyada complex methods address karenge, generalized additive models par jisme decision trees aur random forests shamil hain, saath hi gradient boosting machines aur neural networks.
+There hain many different classification techniques to predict a qualitative response. mein this section, hum will introduce the widely used logistic regression which hai closely related to linear regression. hum will address more complex methods mein the following chapters, on generalized additive models that include decision trees aur random forests, as well as gradient boosting machines aur neural networks.
 
-### Logistic regression model
+### The logistic regression model
 
-Logistic regression model output classes ki probabilities model karne ki iccha se uthta hai jabki ek function diya gaya ho jo x mein linear ho, bilkul linear regression model ki tarah, jabki saath hi ye ensure karta ho ki wo one sum hon aur [0, 1] mein rahein jaisa ki hum probabilities se umeed karenge.
+The logistic regression model arises from the desire to model the probabilities ka the output classes given a function that hai linear mein x, just like the linear regression model, while at the same time ensuring that they sum to one aur remain mein the [0, 1] as hum would expect from probabilities.
 
-Is section mein, hum logistic regression model ka objective aur functional form introduce karte hain aur training method describe karte hain. Fir hum illustrate karte hain ki statsmodels ka use karke macro data ke saath statistical inference ke liye logistic regression ka use kaise karein, aur sklearn dwara implemented regularized logistic regression ka use karke price movements kaise predict karein.
+mein this section, hum introduce the objective aur functional form ka the logistic regression model aur describe the training method. hum then illustrate how to use logistic regression ke liye statistical inference ke saath macro data use karke statsmodels, aur how to predict price movements use karke the regularized logistic regression implemented by sklearn.
 
-### Code Example: statsmodels ke saath inference kaise conduct karein
+### Code Example: how to conduct inference ke saath statsmodels
 
-Notebook [logistic_regression_macro_data](07_logistic_regression_macro_data.ipynb)` illustrate karta hai ki macro data par logistic regression kaise run karein aur [statsmodels](https://www.statsmodels.org/stable/index.html) ka use karke statistical inference kaise conduct karein.
+Notebook [logistic_regression_macro_data](07_logistic_regression_macro_data.ipynb)` illustrates how to run a logistic regression on macro data aur conduct statistical inference use karke [statsmodels](https://www.statsmodels.org/stable/index.html).
 
-### Code examples: prediction ke liye logistic regression ka use kaise karein
+### Code examples: how to use logistic regression ke liye prediction
 
-Lasso L1 penalty aur ridge L2 penalty dono ka use logistic regression ke saath kiya ja sakta hai. Unka wahi shrinkage effect hota hai jaisa humne abhi charcha ki hai, aur lasso ko kisi bhi linear regression model ke saath variable selection ke liye fir se use kiya ja sakta hai.
+The lasso L1 penalty aur the ridge L2 penalty can both be used ke saath logistic regression. They have the same shrinkage effect as hum have just discussed, aur the lasso can again be used ke liye variable selection ke saath any linear regression model.
 
-Jaise linear regression ke saath, input variables ko standardize karna mahatvapurn hai kyunki regularized models scale sensitive hote hain. Regularization hyperparameter ko linear regression case ki tarah cross-validation ka use karke tuning ki bhi zarurat hoti hai.
+Just as ke saath linear regression, it hai important to standardize the input variables as the regularized models hain scale sensitive. The regularization hyperparameter also requires tuning use karke cross-validation as mein the linear regression case.
 
-Notebook [predicting_price_movements_with_logistic_regression](08_predicting_price_movements_with_logistic_regression.ipynb) demonstrate karta hai ki stock price movement prediction ke liye Logistic Regression ka use kaise karein.
+Notebook [predicting_price_movements_with_logistic_regression](08_predicting_price_movements_with_logistic_regression.ipynb) demonstrate karta hai how to use Logistic Regression ke liye stock price movement prediction. 
 
 ## References
 
-- [Risk, Return, and Equilibrium: Empirical Tests](https://www.jstor.org/stable/1831028), Eugene F. Fama and James D. MacBeth, Journal of Political Economy, 81 (1973), pp. 607–636
+- [Risk, Return, aur Equilibrium: Empirical Tests](https://www.jstor.org/stable/1831028), Eugene F. Fama aur James D. MacBeth, Journal ka Political Economy, 81 (1973), pp. 607–636
 - [Asset Pricing](http://faculty.chicagobooth.edu/john.cochrane/teaching/asset_pricing.htm), John Cochrane, 2001
